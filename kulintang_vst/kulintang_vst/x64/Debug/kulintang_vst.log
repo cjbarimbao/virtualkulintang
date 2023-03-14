@@ -1,0 +1,10 @@
+﻿  pch.cpp
+  audioeffect.cpp
+  audioeffectx.cpp
+  dllmain.cpp
+  KulintangAgsaway.cpp
+  KulintangClass.cpp
+C:\Users\USER 1\Desktop\virtualkulintang-main\kulintang_vst\kulintang_vst\KulintangClass.cpp(393,30): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  kulintang_vst.cpp
+  Generating Code...
+  kulintang_vst.vcxproj -> C:\Users\USER 1\Desktop\virtualkulintang-main\kulintang_vst\x64\Debug\kulintang_vst.dll
