@@ -173,7 +173,6 @@ class segmentation(object):
         if radius.size != 0:
             if radius.max() >= 20 and radius.max() < 200:
                 max_index = np.where(radius == radius.max())
-                print(max_index)
                 max = int(max_index[0][0])
 
                 self.detection_point[0] = int(centers[max][0])
@@ -200,7 +199,7 @@ class segmentation(object):
             start = time.time()
             mask = self.image_segmentation(frame)
             #mask = self.non_parametric_segmentation(frame)
-            #self.blob_detection(frame, self.masked, mask)
+            self.blob_detection(frame, self.masked, mask)
             end = time.time()
 
             i = i + 1

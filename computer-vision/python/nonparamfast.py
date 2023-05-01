@@ -147,7 +147,7 @@ class segmentation(object):
         frame_g_int = (self.frame_g*(bins-1)).astype(int)
 
         back_projection = np.zeros(self.frame_r.shape, dtype = 'uint8')
-        back_projection = self.hmatrix1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten() + 1].reshape(self.frame_r.shape).astype(np.uint8)
+        back_projection = self.hmatrix1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape).astype(np.uint8)
 
         #for i in range(self.frame_r.shape[0]):
         #    for j in range(self.frame_r.shape[1]):
