@@ -200,15 +200,13 @@ class segmentation(object):
             frame = self.downsample(frame)
 
             mask = self.image_segmentation(frame, 0)
-            #for i in range(self.total_markers):
+            for i in range(self.total_markers):
             #    mask = self.image_segmentation(frame, i)
-            #    self.blob_detection(frame, self.masked[i], mask, i)
+                self.blob_detection(frame, self.masked[i], mask, i)
 
             end = time.time()
 
-            i = i + 1
-            if (i % 25 == 0):
-                print(end - start)
+            print(end - start)
 
 
             display = np.concatenate((frame, self.masked), axis = 0)
