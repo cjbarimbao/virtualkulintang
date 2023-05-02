@@ -8,7 +8,8 @@ program: image segmentation using rg chromaticity + blob detection
 change log:
     04/12/23 @ blob detection: erosion instead of dilation (minimize white noise)
     04/13/23 @ blob detection: find largest circle + calculate bottom part
-    04/28/23: non-parametric image segmentation
+    04/28/23 @ image segmentation: added non-parametric segmentation
+    05/01/23 @ non-parametric image segmentation: optimized backprojection using array indexing
 """
 
 class segmentation(object):
