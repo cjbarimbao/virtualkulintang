@@ -194,10 +194,12 @@ class segmentation(object):
         while True:
             ret_val, frame = self.cam.read()
             frame = cv2.flip(frame, 1)
+            print("original size",frame.shape)
 
             start = time.time()
 
             frame = self.downsample(frame)
+            print("downsampled size",frame.shape)
 
             mask = self.image_segmentation(frame, 0)
             for i in range(self.total_markers):
