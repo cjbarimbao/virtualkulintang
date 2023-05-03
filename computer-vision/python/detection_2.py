@@ -208,7 +208,7 @@ class segmentation(object):
 
             end = time.time()
 
-            print(end - start)
+            #print(end - start)
 
 
             display = np.concatenate((frame, self.masked), axis = 0)

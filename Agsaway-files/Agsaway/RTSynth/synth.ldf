@@ -1,0 +1,121 @@
+/****************************************************************************
+**                       $TITLE: TT.LDF$
+** TT.LDF
+** ---------
+**     Sets up the memory map for the talk-through demo.
+**
+****************************************************************************/
+ARCHITECTURE(ADSP-21065L)
+
+//
+// ADSP-21065 Memory Map:
+//   ------------------------------------------------
+//   Internal memory  0x0000 0000 to 0x0000 cfff
+//   ------------------------------------------------
+//                    0x0000 0000 to 0x0000 00ff  IOP Regs
+//                    0x0000 0100 to 0x0000 7fff  (ADI reserved)
+//           Block 0  0x0000 8000 to 0x0000 80ff  Normal Word (32/48) Addr
+//                    0x0000 8100 to 0x0000 8FFF  (user space)
+//                    0x0000 9000 to 0x0000 97ff  (kernel PM reserved)
+//           Block 1  0x0000 c000 to 0x0000 cfff  (user space)
+//   ------------------------------------------------
+// available external memory (SDRAM)  0x0300 0000 to 0x030f feff
+// kernel user interface memory       0x030f ff00 to 0x030f ffff
+//   ------------------------------------------------
+//
+// This architecture file allocates:
+//                  256 words of run-time header in memory block 0
+//                   16 words of initialization code in memory block 1
+//                 3839 words of C code space in memory block 1
+//                28671 words of C PM data space in external memory
+//                   4K words of C DM data space in external memory
+//                   4K words of C heap space in external memory
+//                24575 words of C stack space in external memory
+
+
+SEARCH_DIR( $ADI_DSP\21k\lib )
+
+// The lib060.dlb must come before libc.dlb because libc.dlb has some 21020
+// specific code and data
+$LIBRARIES = lib060.dlb, libc.dlb, libio32.dlb ;
+
+// Libraries from the command line are included in COMMAND_LINE_OBJECTS.
+$OBJECTS = $COMMAND_LINE_OBJECTS;
+
+MEMORY
+{
+	seg_rth  { TYPE(PM RAM) START(0x00008000) END(0x0000808f) WIDTH(48) }	// 256, Must be Int Block 0
+	seg_init { TYPE(PM RAM) START(0x00008100) END(0x00008108) WIDTH(48) }	// 16
+
+	seg_pmco { TYPE(PM RAM) START(0x00008109) END(0x000097FF ) WIDTH(48) }	// 4080, Int block 1
+	
+    //seg_pmda { TYPE(PM RAM) START(0x0000d800) END(0x0000d800) WIDTH(32) }	// 2K, Int block 1
+    inram      { TYPE(DM RAM) START(0x0000D000) END(0x0000D2ff) WIDTH(32) }
+    seg_pmda   { TYPE(DM RAM) START(0x03000000) END(0x03000001) WIDTH(32) }
+    
+
+    seg_dmda { TYPE(DM RAM) START(0x03000002) END(0x0303fbc2) WIDTH(32) }	// 1040128, Ext SDRAM
+
+	seg_heap { TYPE(DM RAM) START(0x0303fbc3) END(0x030feeff) WIDTH(32) }	// 4k
+	seg_stak { TYPE(DM RAM) START(0x030fef00) END(0x030ffeff) WIDTH(32) }	// 4K
+
+	seg_bnk3 { TYPE(DM RAM) START(0x030FFF00) END(0x030FFFFF) WIDTH(32) }	// 256, not used
+}
+
+PROCESSOR p0
+{
+    LINK_AGAINST( $COMMAND_LINE_LINK_AGAINST)
+    OUTPUT( $COMMAND_LINE_OUTPUT_FILE )
+
+    SECTIONS
+    {
+		// .text output section
+		seg_rth
+		{
+			INPUT_SECTIONS( $OBJECTS(seg_rth) $LIBRARIES(seg_rth))
+		} >seg_rth
+
+		seg_init
+		{
+			INPUT_SECTIONS( $OBJECTS(seg_init) $LIBRARIES(seg_init))
+		} >seg_init
+
+		seg_pmco
+		{
+			INPUT_SECTIONS( $OBJECTS(seg_pmco) $LIBRARIES(seg_pmco))
+		} >seg_pmco
+
+		seg_pmda
+		{
+			INPUT_SECTIONS( $OBJECTS(seg_pmda) $LIBRARIES(seg_pmda))
+		} >seg_pmda
+		seg_bnk3
+		{
+			INPUT_SECTIONS( $OBJECTS(seg_bnk3) $LIBRARIES(seg_bnk3))
+		} >seg_bnk3
+
+
+		seg_dmda
+		{
+			INPUT_SECTIONS( $OBJECTS(seg_dmda) getdata.doj(ex_data) $LIBRARIES(seg_dmda))
+		} > seg_dmda
+
+		stackseg
+		{
+
+			// allocate a stack for the application
+			ldf_stack_space = .;
+			ldf_stack_length = MEMORY_SIZEOF(seg_stak);
+		} > seg_stak
+
+		heap
+		{
+			// allocate a heap for the application
+			ldf_heap_space = .;
+			ldf_heap_end = ldf_heap_space + MEMORY_SIZEOF(seg_heap) - 1;
+			ldf_heap_length = ldf_heap_end - ldf_heap_space;        
+		} > seg_heap
+		
+    }
+}
+

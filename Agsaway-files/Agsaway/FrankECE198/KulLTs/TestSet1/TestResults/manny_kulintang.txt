@@ -1,0 +1,12 @@
+21 47
+34 45
+55 92 
+96 96
+
+Format: [n11 per style n22 per style];[n11 n22]; [n1 n2]
+n1 = number of times that ORIG followed by SYNTH (O-S) was presented
+n2 = number of times that SYNTH followed by ORIG (S-O) was presented
+n11 = number of times O-S was chosen when O-S was presented
+n22 = number of times S-O was chosen when S-O was presented
+
+Date created: 2005-02-28 15:39.36

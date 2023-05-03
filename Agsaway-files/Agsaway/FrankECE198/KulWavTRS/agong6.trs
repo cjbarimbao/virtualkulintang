@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE Trans SYSTEM "trans-13.dtd">
+<Trans scribe="dummy" audio_filename="00__0001" version="3" version_date="041221">
+<Episode>
+<Section type="report" startTime="0" endTime="70.000">
+<Turn startTime="0" endTime="70.000">
+<Sync time="0.000"/>
+..
+<Sync time="7.832"/>
+S
+<Sync time="8.686"/>
+..
+<Sync time="8.686"/>
+S
+<Sync time="10.716"/>
+..
+<Sync time="19.571"/>
+S
+<Sync time="20.411"/>
+S
+<Sync time="22.200"/>
+..
+<Sync time="30.566"/>
+S
+<Sync time="31.391"/>
+S
+<Sync time="33.185"/>
+..
+<Sync time="42.274"/>
+S
+<Sync time="43.102"/>
+S
+<Sync time="46.360"/>
+..
+<Sync time="53.164"/>
+S
+<Sync time="53.957"/>
+..
+<Sync time="53.957"/>
+S
+<Sync time="56.976"/>
+..
+<Sync time="62.079"/>
+S
+<Sync time="62.957"/>
+..
+<Sync time="62.957"/>
+S
+<Sync time="65.895"/>
+..
+</Turn>
+</Section>
+</Episode>
+</Trans>

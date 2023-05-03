@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE Trans SYSTEM "trans-13.dtd">
+<Trans scribe="dummy" audio_filename="00__0001" version="2" version_date="040702">
+<Episode>
+<Section type="report" startTime="0" endTime="5471397.000">
+<Turn startTime="0" endTime="5471397.000">
+<Sync time="0.000"/>
+..
+<Sync time="8.576"/>
+S
+<Sync time="10.391"/>
+..
+<Sync time="14.123"/>
+S
+<Sync time="15.804"/>
+..
+<Sync time="19.561"/>
+S
+<Sync time="21.332"/>
+..
+<Sync time="27.388"/>
+S
+<Sync time="29.209"/>
+..
+<Sync time="30.940"/>
+S
+<Sync time="32.820"/>
+..
+<Sync time="34.721"/>
+S
+<Sync time="36.587"/>
+..
+<Sync time="45.367"/>
+S
+<Sync time="45.886"/>
+..
+<Sync time="48.515"/>
+S
+<Sync time="48.949"/>
+..
+<Sync time="52.206"/>
+S
+<Sync time="52.720"/>
+..
+<Sync time="60.937"/>
+S
+<Sync time="61.485"/>
+..
+<Sync time="64.089"/>
+S
+<Sync time="64.633"/>
+..
+<Sync time="67.372"/>
+S
+<Sync time="67.846"/>
+..
+<Sync time="76.686"/>
+S
+<Sync time="78.636"/>
+..
+<Sync time="84.169"/>
+S
+<Sync time="86.553"/>
+..
+<Sync time="91.956"/>
+S
+<Sync time="94.395"/>
+..
+<Sync time="102.901"/>
+S
+<Sync time="104.308"/>
+..
+<Sync time="109.127"/>
+S
+<Sync time="110.549"/>
+..
+<Sync time="114.749"/>
+S
+<Sync time="116.156"/>
+..
+</Turn>
+</Section>
+</Episode>
+</Trans>
