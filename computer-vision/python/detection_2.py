@@ -14,10 +14,10 @@ class segmentation(object):
     def __init__(self):
         self.frame_width = 854
         self.frame_height = 480
-        self.pixel_width = 854
-        self.pixel_height = 480
+        self.pixel_width = 427
+        self.pixel_height = 240
         self.center = (int(self.pixel_width/2), int(self.pixel_height/2))
-        self.radius = 59
+        self.radius = 120
         self.diameter = int(2*self.radius)
         self.label = ("Left", "Right")
 
@@ -43,29 +43,33 @@ class segmentation(object):
         self.patch_r_int = [np.zeros((30,30)), np.zeros((30,30))]
         self.patch_g_int = [np.zeros((30,30)), np.zeros((30,30))]
 
-        self.masked = [np.zeros((480,854,3)), np.zeros((480,854,3))]
-        self.masked = np.array(self.masked)
-        self.frame_r = [np.zeros((480,854)), np.zeros((480,854))]
-        self.frame_r = np.array(self.frame_r)
-        self.frame_g = [np.zeros((480,854)), np.zeros((480,854))]
-        self.frame_g = np.array(self.frame_g)
+        #self.masked = [np.zeros((self.frame_height,self.frame_width,3)), np.zeros((self.frame_height,self.frame_width,3))]
+        #self.masked = np.array(self.masked)
+        #self.frame_r = [np.zeros((self.frame_height,self.frame_width)), np.zeros((self.frame_height,self.frame_width))]
+        #self.frame_r = np.array(self.frame_r)
+        #self.frame_g = [np.zeros((self.frame_height,self.frame_width)), np.zeros((self.frame_height,self.frame_width))]
+        #self.frame_g = np.array(self.frame_g)
 
         self.bins = 32
-        self.hmatrix = np.zeros((self.bins, self.bins), dtype = 'int')
-        self.hmatrix1d = np.zeros((self.bins*self.bins), dtype = 'int')
+        #self.hmatrix = np.zeros((self.bins, self.bins), dtype = 'int')
+        #self.hmatrix1d = np.zeros((self.bins*self.bins), dtype = 'int')
 
 
     def calibration(self):
         self.cam = cv2.VideoCapture(0)
+        frame_center = (int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)/2), int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)/2))
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH,self.frame_width)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT,self.frame_height)
-
+        j = 0
         for i in range(self.total_markers):
             while True:
                 ret_val, frame = self.cam.read()
+                if j == 0:
+                    print("calibration frame size",frame.shape)
+                    j = j + 1
                 mirrored = cv2.flip(frame, 1)
-                mirrored = self.downsample(mirrored)
-                image = cv2.circle(mirrored, self.center, self.radius + 1, self.center_color, 1)
+                mirrored_ds = self.downsample(mirrored)
+                image = cv2.circle(mirrored, frame_center, self.radius + 1, self.center_color, 2)
 
                 if i == 0:
                     title = "Calibration: Left"
@@ -73,7 +77,7 @@ class segmentation(object):
                     title = "Calibration: Right"
                 cv2.namedWindow(title, cv2.WINDOW_NORMAL)
                 cv2.resizeWindow(title, self.frame_width, self.frame_height)
-                cv2.setMouseCallback(title, self.retrieve_patch, [mirrored, i])
+                cv2.setMouseCallback(title, self.retrieve_patch, [mirrored_ds, i])
                 cv2.imshow(title, image)
 
                 if self.patch_retrieved == True:
@@ -121,8 +125,8 @@ class segmentation(object):
         '''
         reduce resolution
         '''
-        res = (854, 480)
-        return cv2.resize(frame, res, interpolation = cv2.INTER_AREA)
+        res = (self.pixel_width, self.pixel_height)
+        return cv2.resize(frame, res, interpolation = cv2.INTER_NEAREST)
 
 
     def image_segmentation(self, frame, marker_num, mean = 1, std = 1):
@@ -190,17 +194,17 @@ class segmentation(object):
 
     def main_detection(self):
         ''' Main Code '''
+        t = []
         i = 0
         while True:
-            ret_val, frame = self.cam.read()
-            frame = cv2.flip(frame, 1)
-            print("original size",frame.shape)
-
             start = time.time()
 
+            ret_val, frame = self.cam.read()
+            frame = cv2.flip(frame, 1)
+            if i == 0:
+                print("frame size",frame.shape)
+                i = i + 1
             frame = self.downsample(frame)
-            print("downsampled size",frame.shape)
-
             mask = self.image_segmentation(frame, 0)
             for i in range(self.total_markers):
             #    mask = self.image_segmentation(frame, i)
@@ -208,14 +212,13 @@ class segmentation(object):
 
             end = time.time()
 
-            #print(end - start)
-
+            t.append(end - start)
 
             display = np.concatenate((frame, self.masked), axis = 0)
 
             title = "Main Detection"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(title, self.frame_width, int(self.frame_height*2))
+            cv2.resizeWindow(title, int(self.frame_width), int(self.frame_height*2))
             #cv2.resizeWindow(title, self.frame_width, self.frame_height)
             cv2.imshow(title, display)
             #cv2.imshow(title, frame)
@@ -226,6 +229,10 @@ class segmentation(object):
         self.cam.release()
         cv2.destroyAllWindows()
         print("Quitting Detection...")
+        # print average execution time
+        avg_t = sum(t)/len(t) 
+        print("Average execution time: {0:.2f} milliseconds".format(avg_t*1000))
+        print("Average frame rate: ", 1/avg_t)
 
 
 
