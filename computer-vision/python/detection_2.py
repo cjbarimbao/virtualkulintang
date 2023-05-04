@@ -65,7 +65,7 @@ class segmentation(object):
             while True:
                 ret_val, frame = self.cam.read()
                 if j == 0:
-                    print("calibration frame size",frame.shape)
+                #    print("calibration frame size",frame.shape)
                     j = j + 1
                 mirrored = cv2.flip(frame, 1)
                 mirrored_ds = self.downsample(mirrored)
@@ -202,7 +202,7 @@ class segmentation(object):
             ret_val, frame = self.cam.read()
             frame = cv2.flip(frame, 1)
             if i == 0:
-                print("frame size",frame.shape)
+                #print("frame size",frame.shape)
                 i = i + 1
             frame = self.downsample(frame)
             mask = self.image_segmentation(frame, 0)
