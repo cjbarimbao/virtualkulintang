@@ -93,6 +93,13 @@ class segmentation(object):
         r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
         self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.bins, range = [[0,self.bins-1],[0,self.bins-1]])
         self.hmatrix1d = self.hmatrix.flatten()
+        # save histogram matrix and r g values of the patch (in integer form)
+        with open('calibration.npy', 'wb') as f:
+            np.save(f, self.hmatrix)
+            np.save(f, self.patch_g_int[0])
+            np.save(f, self.patch_r_int[0])
+            np.save(f, self.patch_g_int[1])
+            np.save(f, self.patch_r_int[1])
 
 
         print("Quitting Calibration...")
@@ -144,9 +151,9 @@ class segmentation(object):
         frame_g_int = (self.frame_g*(self.bins-1)).astype(int)
 
         back_projection = np.zeros(self.frame_r.shape, dtype = 'uint8')
-        back_projection = self.hmatrix1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape).astype(np.uint8)
+        back_projection = self.hmatrix1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
-        self.masked = cv2.bitwise_and(frame, frame, mask = back_projection)
+        self.masked = cv2.bitwise_and(frame, frame, mask = back_projection.astype(np.uint8))
 
         return back_projection
 
@@ -193,6 +200,15 @@ class segmentation(object):
                 cv2.putText(frame, self.label[marker_num], (dp_x, dp_y + 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
 
+    def blob_detection1(self, frame):
+        _, thresh = cv2.threshold(frame, 127, 255, cv2.THRESH_BINARY)
+        M = cv2.moments(thresh)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+
+        cv2.circle(self.masked, (cX, cY), 5, (255, 255, 255), -1)
+        cv2.putText(self.masked, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
     def main_detection(self):
         ''' Main Code '''
         t = []
@@ -203,13 +219,21 @@ class segmentation(object):
             ret_val, frame = self.cam.read()
             frame = cv2.flip(frame, 1)
             if i == 0:
-                #print("frame size",frame.shape)
+                # print("frame size",frame.shape)
+                # save first frame as npy file
+                with open('frame.npy', 'wb') as f:
+                    np.save(f, frame)
+
                 i = i + 1
             frame = self.downsample(frame)
-            mask = self.image_segmentation(frame, 0)
-            for i in range(self.total_markers):
+            back_proj = self.image_segmentation(frame, 0)
+            with open('segmented.npy', 'wb') as f:
+                np.save(f, back_proj)
+            #for i in range(self.total_markers):
             #    mask = self.image_segmentation(frame, i)
-                self.blob_detection(frame, self.masked[i], mask, i)
+            #    self.blob_detection1(frame, self.masked[i], mask, i)
+            
+            self.blob_detection1(back_proj)
 
             end = time.time()
 
@@ -224,7 +248,7 @@ class segmentation(object):
             cv2.imshow(title, display)
             #cv2.imshow(title, frame)
 
-            if cv2.waitKey(1) == 27:
+            if cv2.waitKey(0) == 27:
                 break
 
         self.cam.release()
