@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import matplotlib as plt
 import time
+import datetime
 
 """
 program: image segmentation using rg chromaticity + blob detection
@@ -200,7 +201,7 @@ class segmentation(object):
 
 
     def main_segmentation(self):
-        i = 0
+        t = []
         ''' Main Code '''
         while True:
             ret_val, frame = self.cam.read()
@@ -213,11 +214,7 @@ class segmentation(object):
             self.blob_detection(frame, self.masked, mask)
 
             end = time.time()
-
-            i = i + 1
-            if (i % 25 == 0):
-                print(end - start)
-
+            t.append(end-start)
             display = np.concatenate((frame, self.masked), axis=0)
 
             title = "Histogram Backprojection using Matrix Manipulation"
@@ -230,6 +227,12 @@ class segmentation(object):
 
         self.cam.release()
         cv2.destroyAllWindows()
+        # print average execution time
+        avg_t = sum(t)/len(t)
+        now = datetime.datetime.now()
+        print(now.strftime("%Y-%m-%d %H:%M:%S"))
+        print("Average execution time: {0:.2f} milliseconds".format(avg_t*1000))
+        print("Average frame rate: ", 1/avg_t)
 
 
 

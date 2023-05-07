@@ -95,15 +95,17 @@ class segmentation(object):
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
         self.hmatrix1d = self.hmatrix.flatten()
+        self.hmatrix_g1d = self.hmatrix_g.flatten()
+        self.hmatrix_r1d = self.hmatrix_r.flatten()
         # save histogram matrix and r g values of the patch (in integer form)
-        with open('calibration.npy', 'wb') as f:
+        """ with open('calibration.npy', 'wb') as f:
             np.save(f, self.hmatrix)
             np.save(f, self.hmatrix_g)
             np.save(f, self.hmatrix_r)
             np.save(f, self.patch_g_int[0])
             np.save(f, self.patch_r_int[0])
             np.save(f, self.patch_g_int[1])
-            np.save(f, self.patch_r_int[1])
+            np.save(f, self.patch_r_int[1]) """
 
 
         print("Quitting Calibration...")
@@ -154,105 +156,77 @@ class segmentation(object):
         frame_r_int = (self.frame_r*(self.bins-1)).astype(int)
         frame_g_int = (self.frame_g*(self.bins-1)).astype(int)
 
-        back_projection = np.zeros(self.frame_r.shape, dtype = 'uint8')
-        back_projection = self.hmatrix1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
+        #back_projection = self.hmatrix1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
+        bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
+        bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
-        self.masked = cv2.bitwise_and(frame, frame, mask = back_projection.astype(np.uint8))
+        self.masked = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
 
-        return back_projection
-
-
-    def blob_detection(self, frame, masked, mask, marker_num):
-        self.dp_update = False
-
-        # Blob Detection
-        kernel = np.ones((10,10),np.uint8)
-        dilation = cv2.erode(mask, kernel, iterations = 1)
-        image, contours, hierarchy = cv2.findContours(dilation,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-
-        # Approximate contours to polygons + get bounding circles
-        contours_poly = [None]*len(contours)
-        centers = [None]*len(contours)
-        radius = [None]*len(contours)
-        for i, c in enumerate(contours):
-            contours_poly[i] = cv2.approxPolyDP(c, 3, True)
-            centers[i], radius[i] = cv2.minEnclosingCircle(contours_poly[i])
-
-        # Find bounding circle for the marker (usually largest)
-        centers = np.array(centers)
-        radius = np.array(radius)
-        if radius.size != 0:
-            if radius.max() >= 20 and radius.max() < 200:
-                max_index = np.where(radius == radius.max())
-                #print(max_index)
-                max = int(max_index[0][0])
-
-                dp_x = int(centers[max][0])
-                dp_y = int(centers[max][1] + radius[max])
-
-                self.detection_point[marker_num, 0] = dp_x
-                self.detection_point[marker_num, 1] = dp_y
-                self.dp_update = True
-
-        # Draw polygonal contour, bounding circles, and detection point
-        if centers.size != 0:
-            if self.dp_update == True:
-                #cv2.drawContours(masked, contours_poly, max, self.bound_color)
-                #cv2.circle(masked, (int(centers[max][0]), int(centers[max][1])), int(radius[max]), self.bound_color, 1)
-                cv2.circle(frame, (int(centers[max][0]), int(centers[max][1])), int(radius[max]), self.bound_color, 1)
-                cv2.circle(frame, (dp_x, dp_y), 5, self.center_color, -5)
-                cv2.putText(frame, self.label[marker_num], (dp_x, dp_y + 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        return bp_g, bp_r
 
 
-    def blob_detection1(self, frame):
-        _, thresh = cv2.threshold(frame, 127, 255, cv2.THRESH_BINARY)
-        M = cv2.moments(thresh)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
+    def blob_detection(self, frame):
+        
+        
+        center = [0,0]
 
-        cv2.circle(self.masked, (cX, cY), 5, (255, 255, 255), -1)
-        cv2.putText(self.masked, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        indices = np.where(frame == np.amax(frame))
+        center[0] = indices[0].mean()
+        center[1] = indices[1].mean()
+
+        center = np.array(center, dtype=np.uint16) 
+
+        return center
+    
+    def disp_centroid(self, cX, cY):
+        
+        final_mask = np.copy(self.masked)
+        cv2.circle(final_mask, (cX, cY), 5, (255, 255, 255), -1)
+        cv2.putText(final_mask, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        return final_mask
 
     def main_detection(self):
         ''' Main Code '''
         t = []
         i = 0
         while True:
+            
             start = time.time()
-
             ret_val, frame = self.cam.read()
-            frame = cv2.flip(frame, 1)
-            if i == 0:
+            """ if i == 0:
                 # print("frame size",frame.shape)
                 # save first frame as npy file
                 with open('frame.npy', 'wb') as f:
                     np.save(f, frame)
 
-                i = i + 1
+                i = i + 1 """
             frame = self.downsample(frame)
-            back_proj = self.image_segmentation(frame, 0)
-            with open('segmented.npy', 'wb') as f:
-                np.save(f, back_proj)
-            #for i in range(self.total_markers):
-            #    mask = self.image_segmentation(frame, i)
-            #    self.blob_detection1(frame, self.masked[i], mask, i)
+            frame = cv2.flip(frame, 1)
+            bp_g, bp_r = self.image_segmentation(frame, 0)
+            """ with open('segmented.npy', 'wb') as f:
+                np.save(f, bp_g) """
+            #----- blob detection -----
             
-            self.blob_detection1(back_proj)
-
+            centroid = self.blob_detection(bp_r)
             end = time.time()
-
             t.append(end - start)
+            
+            #--------------------------
+            numpy_mask = self.masked
+            if (centroid.size != 0):
+                try:
+                    numpy_mask = self.disp_centroid(int(centroid[1]), int(centroid[0]))
+                except: 
+                    print(centroid)
+            
+            display = np.concatenate((frame, numpy_mask), axis = 0)
 
-            display = np.concatenate((frame, self.masked), axis = 0)
-
-            title = "Main Detection"
+            title = "Numpy Detection"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(title, int(self.frame_width), int(self.frame_height*2))
-            #cv2.resizeWindow(title, self.frame_width, self.frame_height)
             cv2.imshow(title, display)
-            #cv2.imshow(title, frame)
 
-            if cv2.waitKey(0) == 27:
+            if cv2.waitKey(1) == 27:
                 break
 
         self.cam.release()
@@ -262,9 +236,8 @@ class segmentation(object):
         avg_t = sum(t)/len(t)
         now = datetime.datetime.now()
         print(now.strftime("%Y-%m-%d %H:%M:%S"))
-        print("Average execution time: {0:.2f} milliseconds".format(avg_t*1000))
+        print("Average numpy where + mean execution time: {0:.2f} milliseconds".format(avg_t*1000))
         print("Average frame rate: ", 1/avg_t)
-
 
 
 if __name__ == '__main__':
