@@ -160,8 +160,8 @@ class segmentation(object):
         bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
         bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
-        self.masked = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
-
+        self.masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
+        self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
         return bp_g, bp_r
 
 
@@ -178,12 +178,14 @@ class segmentation(object):
 
         return center
     
-    def disp_centroid(self, cX, cY):
-        
-        final_mask = np.copy(self.masked)
-        cv2.circle(final_mask, (cX, cY), 5, (255, 255, 255), -1)
-        cv2.putText(final_mask, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        return final_mask
+    def disp_centroid(self, frame, Cr, Cg):
+        # draw centroid
+        cv2.circle(frame, (Cr[1], Cr[0]), 5, (255, 0, 0), -1)
+        cv2.putText(frame, "centroid", (Cr[1] - 25, Cr[0] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        cv2.circle(frame, (Cg[1], Cg[0]), 5, (255, 0, 0), -1)
+        cv2.putText(frame, "centroid", (Cg[1] - 25, Cg[0] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+        return frame
 
     def main_detection(self):
         ''' Main Code '''
@@ -207,24 +209,26 @@ class segmentation(object):
                 np.save(f, bp_g) """
             #----- blob detection -----
             
-            centroid = self.blob_detection(bp_r)
+            centroid_r = self.blob_detection(bp_r)
+            centroid_g = self.blob_detection(bp_g)
             end = time.time()
             t.append(end - start)
             
             #--------------------------
-            numpy_mask = self.masked
-            if (centroid.size != 0):
+            #numpy_mask_r = self.masked_r
+            #numpy_mask_g = self.masked_g
+            if (centroid_r.size != 0 and centroid_g.size != 0):
                 try:
-                    numpy_mask = self.disp_centroid(int(centroid[1]), int(centroid[0]))
+                    frame = self.disp_centroid(frame, centroid_r, centroid_g)
                 except: 
-                    print(centroid)
+                    print(centroid_r, centroid_g)
             
-            display = np.concatenate((frame, numpy_mask), axis = 0)
+            #display = np.concatenate((frame, numpy_mask), axis = 0)
 
             title = "Numpy Detection"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(title, int(self.frame_width), int(self.frame_height*2))
-            cv2.imshow(title, display)
+            cv2.resizeWindow(title, int(self.frame_width), int(self.frame_height))
+            cv2.imshow(title, frame)
 
             if cv2.waitKey(1) == 27:
                 break
