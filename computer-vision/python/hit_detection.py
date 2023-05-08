@@ -196,8 +196,6 @@ class segmentation(object):
         if indices[0].size > 225:
             center[0] = indices[0].mean()
             center[1] = indices[1].mean()
-        else:
-            print(indices[0].size)
 
         center = np.array(center, dtype=np.uint16) 
 
