@@ -207,9 +207,6 @@ class segmentation(object):
                 i = i + 1
             frame = self.downsample(frame)
             mask = self.image_segmentation(frame, 0)
-            for i in range(self.total_markers):
-            #    mask = self.image_segmentation(frame, i)
-                self.blob_detection(frame, self.masked, mask, i)
 
             end = time.time()
 

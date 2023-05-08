@@ -9,6 +9,7 @@ change log:
     04/15/23 @ initialization: increasing frame width to accomodate gongs
     04/15/23 @ main detection: downsampling included to minimize lag during detection while accomodating increase in width
     05/02/23 @ image segmentation: modified segmentation using histogram backprojection
+    05/07/23 @ blob detection: working centroid detection using numpy where and average on pixels with maximum histogram values
 """
 
 class segmentation(object):
@@ -25,8 +26,6 @@ class segmentation(object):
         self.center_color = (255, 0, 0)
         self.bound_color = (0, 255, 0)
         self.detection_point = np.array([[0, 0], [0, 0]])
-        #self.dp_update_0 = False
-        #self.dp_update_1 = False
 
         self.patch_size = 30
         self.patch_half = int(self.patch_size/2)
@@ -44,16 +43,7 @@ class segmentation(object):
         self.patch_r_int = [np.zeros((30,30)), np.zeros((30,30))]
         self.patch_g_int = [np.zeros((30,30)), np.zeros((30,30))]
 
-        #self.masked = [np.zeros((self.frame_height,self.frame_width,3)), np.zeros((self.frame_height,self.frame_width,3))]
-        #self.masked = np.array(self.masked)
-        #self.frame_r = [np.zeros((self.frame_height,self.frame_width)), np.zeros((self.frame_height,self.frame_width))]
-        #self.frame_r = np.array(self.frame_r)
-        #self.frame_g = [np.zeros((self.frame_height,self.frame_width)), np.zeros((self.frame_height,self.frame_width))]
-        #self.frame_g = np.array(self.frame_g)
-
-        self.bins = 32
-        #self.hmatrix = np.zeros((self.bins, self.bins), dtype = 'int')
-        #self.hmatrix1d = np.zeros((self.bins*self.bins), dtype = 'int')
+        self.BINS = 32
 
 
     def calibration(self):
@@ -66,7 +56,6 @@ class segmentation(object):
             while True:
                 ret_val, frame = self.cam.read()
                 if j == 0:
-                #    print("calibration frame size",frame.shape)
                     j = j + 1
                 mirrored = cv2.flip(frame, 1)
                 mirrored_ds = self.downsample(mirrored)
@@ -91,7 +80,7 @@ class segmentation(object):
         # Histogram of patch
         g_int_append = np.append(self.patch_g_int[0].flatten(), self.patch_g_int[1].flatten())
         r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
-        self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.bins, range = [[0,self.bins-1],[0,self.bins-1]])
+        self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
         self.hmatrix1d = self.hmatrix.flatten()
@@ -129,8 +118,8 @@ class segmentation(object):
 
             self.patch_r[marker] = self.patch[marker, :,:,2] / I
             self.patch_g[marker] = self.patch[marker, :,:,1] / I
-            self.patch_r_int[marker] = (self.patch_r[marker]*(self.bins-1)).astype(int)
-            self.patch_g_int[marker] = (self.patch_g[marker]*(self.bins-1)).astype(int)
+            self.patch_r_int[marker] = (self.patch_r[marker]*(self.BINS-1)).astype(int)
+            self.patch_g_int[marker] = (self.patch_g[marker]*(self.BINS-1)).astype(int)
 
             self.patch_retrieved = True
              
@@ -143,9 +132,24 @@ class segmentation(object):
         return cv2.resize(frame, res, interpolation = cv2.INTER_NEAREST)
 
 
-    def image_segmentation(self, frame, marker_num, mean = 1, std = 1):
+    def image_segmentation(self, frame):
+        """
+        image_segmentation(frame)
 
-        # RG chromaticity of frame
+        Returns the backprojection of the frame using the histogram matrix
+
+        Parameters
+        ----------
+        frame : the downsampled RGB frame
+
+        Returns
+        -------
+        bp_g : ndarray
+            An array representation of the frame's backprojection on the green channel
+        bp_r : ndarray
+            AN array representation of the frame's backprojection on the red channel
+        """
+
         np.seterr(invalid='ignore')
         I = frame.sum(axis=2)
         I[I == 0] = 100000
@@ -153,20 +157,34 @@ class segmentation(object):
         self.frame_r = frame[:,:,2] / I
         self.frame_g = frame[:,:,1] / I
         
-        frame_r_int = (self.frame_r*(self.bins-1)).astype(int)
-        frame_g_int = (self.frame_g*(self.bins-1)).astype(int)
+        frame_r_int = (self.frame_r*(self.BINS-1)).astype(int)
+        frame_g_int = (self.frame_g*(self.BINS-1)).astype(int)
 
-        #back_projection = self.hmatrix1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
-        bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
-        bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.bins + frame_r_int.flatten()].reshape(self.frame_r.shape)
+        bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
+        bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
         self.masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
         self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
+        
         return bp_g, bp_r
 
 
     def blob_detection(self, frame):
-        
+        """
+        blob_detection(frame)
+
+        Calculates the centroid of the blob in the segmented frame
+
+        Parameters
+        ----------
+        frame : ndarray
+            An array representation of the frame's backprojection
+        Returns
+        -------
+        center : ndarray
+            An array representation of the centroid of the blob (y,x) 
+            where y is the row and x is the column location in the original frame
+        """
         
         center = [0,0]
 
@@ -195,28 +213,17 @@ class segmentation(object):
             
             start = time.time()
             ret_val, frame = self.cam.read()
-            """ if i == 0:
-                # print("frame size",frame.shape)
-                # save first frame as npy file
-                with open('frame.npy', 'wb') as f:
-                    np.save(f, frame)
-
-                i = i + 1 """
             frame = self.downsample(frame)
             frame = cv2.flip(frame, 1)
-            bp_g, bp_r = self.image_segmentation(frame, 0)
-            """ with open('segmented.npy', 'wb') as f:
-                np.save(f, bp_g) """
-            #----- blob detection -----
+            bp_g, bp_r = self.image_segmentation(frame)
+            #-------- blob detection ---------
             
             centroid_r = self.blob_detection(bp_r)
             centroid_g = self.blob_detection(bp_g)
             end = time.time()
             t.append(end - start)
             
-            #--------------------------
-            #numpy_mask_r = self.masked_r
-            #numpy_mask_g = self.masked_g
+            #----- display detected blob -----
             if (centroid_r.size != 0 and centroid_g.size != 0):
                 try:
                     frame = self.disp_centroid(frame, centroid_r, centroid_g)
@@ -233,10 +240,11 @@ class segmentation(object):
             if cv2.waitKey(1) == 27:
                 break
 
+        #--------------- termination sequence ------------------
         self.cam.release()
         cv2.destroyAllWindows()
         print("Quitting Detection...")
-        # print average execution time
+        #------------ print average execution time -------------
         avg_t = sum(t)/len(t)
         now = datetime.datetime.now()
         print(now.strftime("%Y-%m-%d %H:%M:%S"))
