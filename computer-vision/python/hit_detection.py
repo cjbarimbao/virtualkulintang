@@ -11,6 +11,7 @@ change log:
     05/02/23 @ image segmentation: modified segmentation using histogram backprojection
     05/07/23 @ blob detection: working centroid detection using numpy where and average on pixels with maximum histogram values
     05/08/23 @ blob detection: added thresholding to binarize histogram backprojected image
+    05/09/23 @ blob detection: moved thresholding to calibration to reduce processing time
 
 """
 
@@ -85,6 +86,7 @@ class segmentation(object):
         g_int_append = np.append(self.patch_g_int[0].flatten(), self.patch_g_int[1].flatten())
         r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
         self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
+        _, self.hmatrix = cv2.threshold(self.hmatrix, 30, 255, cv2.THRESH_BINARY)
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
         self.hmatrix1d = self.hmatrix.flatten()
@@ -191,8 +193,7 @@ class segmentation(object):
         """
         
         center = [0,0]
-        _, thresh = cv2.threshold(frame, 30, 255, cv2.THRESH_BINARY)
-        indices = np.where(thresh == 255)
+        indices = np.where(frame == 255)
         if indices[0].size > 225:
             center[0] = indices[0].mean()
             center[1] = indices[1].mean()
