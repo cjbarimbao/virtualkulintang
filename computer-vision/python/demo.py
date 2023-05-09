@@ -21,10 +21,10 @@ class segmentation(object):
         self.frame_height = 480
         self.pixel_width = 427
         self.pixel_height = 240
-        self.DISPLAY_WIDTH = 1137
-        self.DISPLAY_HEIGHT = 640
+        self.DISPLAY_WIDTH = 1280
+        self.DISPLAY_HEIGHT = 720
         self.center = (int(self.pixel_width/2), int(self.pixel_height/2))
-        self.radius = 100
+        self.radius = 60
         self.diameter = int(2*self.radius)
         self.label = ("Left", "Right")
 
@@ -39,8 +39,6 @@ class segmentation(object):
         self.cam = None
         self.total_markers = 2
         
-
-        self.BINS = 32
         self.patch = [np.zeros((30,30,3)), np.zeros((30,30,3))]
         self.patch = np.array(self.patch)
         self.patch_r = [np.zeros((30,30)), np.zeros((30,30))]
@@ -50,27 +48,10 @@ class segmentation(object):
         self.patch_r_int = [np.zeros((30,30)), np.zeros((30,30))]
         self.patch_g_int = [np.zeros((30,30)), np.zeros((30,30))]
 
-        # Bounding area coordinates - upper left, lower right coordinates in [x,y]
-        self.gong_1 = np.array([[0, 0], [0, 0], [0, 0]])
-        self.gong_2 = np.array([[0, 0], [0, 0], [0, 0]])
-        self.gong_3 = np.array([[0, 0], [0, 0], [0, 0]])
-        self.gong_4 = np.array([[0, 0], [0, 0], [0, 0]])
-        self.gong_5 = np.array([[0, 0], [0, 0], [0, 0]])
-        self.gong_6 = np.array([[0, 0], [0, 0], [0, 0]])
-        self.gong_7 = np.array([[0, 0], [0, 0], [0, 0]])
-        self.gong_8 = np.array([[0, 0], [0, 0], [0, 0]])
-
-        self.gong_color_draw = (0, 255, 0)
-        self.gong_color_strike = (0, 0, 255)
+        self.BINS = 32
 
 
-    def init_calibration(self):
-        self.marker_calibration()
-        self.init_bounding_boxes_coord()
-
-
-
-    def marker_calibration(self):
+    def calibration(self):
         self.cam = cv2.VideoCapture(0)
         frame_center = (int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)/2), int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)/2))
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH,self.frame_width)
@@ -124,6 +105,7 @@ class segmentation(object):
 
         print("Quitting Calibration...")
 
+
     def retrieve_patch(self, event, x, y, flags, params):
         image = params[0]
         marker = params[1]
@@ -145,14 +127,16 @@ class segmentation(object):
             self.patch_r_int[marker] = (self.patch_r[marker]*(self.BINS-1)).astype(int)
             self.patch_g_int[marker] = (self.patch_g[marker]*(self.BINS-1)).astype(int)
 
-            self.patch_retrieved = True             
+            self.patch_retrieved = True
+             
 
     def downsample(self, frame):
         '''
         reduce resolution
         '''
         res = (self.pixel_width, self.pixel_height)
-        return cv2.resize(frame, res, interpolation = cv2.INTER_AREA)
+        return cv2.resize(frame, res, interpolation = cv2.INTER_NEAREST)
+
 
     def image_segmentation(self, frame):
         """
@@ -171,11 +155,11 @@ class segmentation(object):
         bp_r : ndarray
             AN array representation of the frame's backprojection on the red channel
         """
-
+        
         np.seterr(invalid='ignore')
         I = frame.sum(axis=2)
+        
         I[I == 0] = 100000
-
         self.frame_r = frame[:,:,2] / I
         self.frame_g = frame[:,:,1] / I
         
@@ -189,6 +173,7 @@ class segmentation(object):
         self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
         
         return bp_g, bp_r
+
 
     def blob_detection(self, frame):
         """
@@ -216,91 +201,48 @@ class segmentation(object):
         center = np.array(center, dtype=np.uint16) 
 
         return center
-
-    def init_bounding_boxes_coord(self):
-
-        self.grid_y1 = int(0.71875*self.DISPLAY_HEIGHT)    # upper y of bound
-        self.grid_y2 = int(self.DISPLAY_HEIGHT)           # lower y of bound
-        # self.bound_width = 135
-        self.bound_width = 0.125                        # x is 12.5% of width
-
-        self.gong_1[0:] = [0, self.grid_y1]                                         # (0, upper y)
-        self.gong_1[1:] = [int(self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]    # (135, lower y)
-
-        self.gong_2[0:] = [int(self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]    # (135, upper y)
-        self.gong_2[1:] = [int(2*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (270, lower y)
-
-        self.gong_3[0:] = [int(2*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (270, upper y)
-        self.gong_3[1:] = [int(3*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (405, lower y)
-
-        self.gong_4[0:] = [int(3*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (405, upper y)
-        self.gong_4[1:] = [int(4*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (540, lower y)
-
-        self.gong_5[0:] = [int(4*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (540, upper y)
-        self.gong_5[1:] = [int(5*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (675, lower y)
-
-        self.gong_6[0:] = [int(5*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (675, upper y)
-        self.gong_6[1:] = [int(6*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (810, lower y)
-
-        self.gong_7[0:] = [int(6*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (810, upper y)
-        self.gong_7[1:] = [int(7*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (945, lower y)
-
-        self.gong_8[0:] = [int(7*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (945, upper y)
-        self.gong_8[1:] = [int(8*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (1080, lower y)
-        # self.gong_8[1:] = [self.grid_y2, self.grid_y2]                            # (lower y, lower y)
-
-    def disp_config(self, frame, Cr, Cg):
-        """
-        Draw bounding boxes and centroid for every frame
-        -----------
-        Parameters:
-        frame : current frame to be displayed
-        Cr : centroid of red blob
-        Cg : centroid of green blob
-        """
-        # draw bounding boxes
-        cv2.rectangle(frame, (self.gong_1[0,0], self.gong_1[0,1]), (self.gong_1[1,0], self.gong_1[1,1]), self.gong_color_draw, 2)
-        cv2.rectangle(frame, (self.gong_2[0,0], self.gong_2[0,1]), (self.gong_2[1,0], self.gong_2[1,1]), self.gong_color_draw, 2)
-        cv2.rectangle(frame, (self.gong_3[0,0], self.gong_3[0,1]), (self.gong_3[1,0], self.gong_3[1,1]), self.gong_color_draw, 2)
-        cv2.rectangle(frame, (self.gong_4[0,0], self.gong_4[0,1]), (self.gong_4[1,0], self.gong_4[1,1]), self.gong_color_draw, 2)
-        cv2.rectangle(frame, (self.gong_5[0,0], self.gong_5[0,1]), (self.gong_5[1,0], self.gong_5[1,1]), self.gong_color_draw, 2)
-        cv2.rectangle(frame, (self.gong_6[0,0], self.gong_6[0,1]), (self.gong_6[1,0], self.gong_6[1,1]), self.gong_color_draw, 2)
-        cv2.rectangle(frame, (self.gong_7[0,0], self.gong_7[0,1]), (self.gong_7[1,0], self.gong_7[1,1]), self.gong_color_draw, 2)
-        cv2.rectangle(frame, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_draw, 2)
-
+    
+    def disp_centroid(self, frame, Cr, Cg):
         # draw centroid
         cv2.circle(frame, (Cr[1], Cr[0]), 5, (255, 0, 0), -1)
         cv2.putText(frame, "centroid", (Cr[1] - 25, Cr[0] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         cv2.circle(frame, (Cg[1], Cg[0]), 5, (255, 0, 0), -1)
         cv2.putText(frame, "centroid", (Cg[1] - 25, Cg[0] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        
+
+        return frame
+
     def main_detection(self):
         ''' Main Code '''
         t = []
+        i = 0
         while True:
             
             start = time.time()
-            _, frame = self.cam.read()
+            ret_val, frame = self.cam.read()
             frame = self.downsample(frame)
             frame = cv2.flip(frame, 1)
             bp_g, bp_r = self.image_segmentation(frame)
             #-------- blob detection ---------
+            
             centroid_r = self.blob_detection(bp_r)
             centroid_g = self.blob_detection(bp_g)
             end = time.time()
             t.append(end - start)
-            #-------- configure display --------  
-            self.disp_config(frame, centroid_r, centroid_g)
-
-            #display = np.concatenate((frame, self.masked_g, self.masked_r), axis = 1)
+            
+            #----- display detected blob -----
+            if (centroid_r.size != 0 and centroid_g.size != 0):
+                try:
+                    frame = self.disp_centroid(frame, centroid_r, centroid_g)
+                except: 
+                    print(centroid_r, centroid_g)
+            
+            display = np.concatenate((frame, self.masked_g, self.masked_r), axis = 1)
 
             title = "Blob Detection"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT))
-            cv2.imshow(title, frame)
-            #cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/3))
-            #cv2.imshow(title, display)
-            
+            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/3))
+            cv2.imshow(title, display)
+
             if cv2.waitKey(1) == 27:
                 break
 
@@ -312,11 +254,11 @@ class segmentation(object):
         avg_t = sum(t)/len(t)
         now = datetime.datetime.now()
         print(now.strftime("%Y-%m-%d %H:%M:%S"))
-        print("Average numpy where + mean execution time: {0:.2f} msec".format(avg_t*1000))
-        print("Average frame rate: {} fps".format(int(1/avg_t)))
+        print("Average execution time: {0:.2f} milliseconds".format(np.mean(t)*1000))
+        print("Average frame rate: ", int(1/avg_t))
 
 
 if __name__ == '__main__':
     start = segmentation()
-    start.init_calibration()
+    start.calibration()
     start.main_detection()
