@@ -192,7 +192,7 @@ class segmentation(object):
         bp_g : ndarray
             An array representation of the frame's backprojection on the green channel
         bp_r : ndarray
-            AN array representation of the frame's backprojection on the red channel
+            An array representation of the frame's backprojection on the red channel
         """
 
         np.seterr(invalid='ignore')
@@ -226,7 +226,7 @@ class segmentation(object):
         Returns
         -------
         center : ndarray
-            An array representation of the centroid of the blob (y,x) 
+            An array representation of the centroid of the blob (x,y) 
             where y is the row and x is the column location in the original frame
         """
         
@@ -326,10 +326,10 @@ class segmentation(object):
         Parameters
         ----------
         Cr : ndarray
-            An array representation of the centroid of the red blob (y,x) 
+            An array representation of the centroid of the red blob (x,y) 
             where y is the row and x is the column location in the original frame
         Cg : ndarray
-            An array representation of the centroid of the green blob (y,x) 
+            An array representation of the centroid of the green blob (x,y) 
             where y is the row and x is the column location in the original frame
         Returns
         -------
