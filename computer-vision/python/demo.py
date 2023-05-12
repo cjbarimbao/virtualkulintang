@@ -86,7 +86,7 @@ class segmentation(object):
         g_int_append = np.append(self.patch_g_int[0].flatten(), self.patch_g_int[1].flatten())
         r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
         self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
-        _, self.hmatrix = cv2.threshold(self.hmatrix, 30, 255, cv2.THRESH_BINARY)
+        _, self.hmatrix = cv2.threshold(self.hmatrix, 10, 255, cv2.THRESH_BINARY)
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
         self.hmatrix1d = self.hmatrix.flatten()
@@ -169,8 +169,8 @@ class segmentation(object):
         bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
         bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
-        self.masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
-        self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
+        #self.masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
+        #self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
         
         return bp_g, bp_r
 
@@ -236,12 +236,17 @@ class segmentation(object):
                 except: 
                     print(centroid_r, centroid_g)
             
-            display = np.concatenate((frame, self.masked_g, self.masked_r), axis = 1)
+            display = np.concatenate((bp_r, bp_g), axis = 1)
 
             title = "Blob Detection"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/3))
+            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
             cv2.imshow(title, display)
+
+            title = "Centroid Detection"
+            cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH/2), int(self.DISPLAY_HEIGHT/2))
+            cv2.imshow(title, frame)
 
             if cv2.waitKey(1) == 27:
                 break

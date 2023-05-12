@@ -16,10 +16,12 @@ Date: 2019
 class vkulintang(object):
     def __init__(self):
         # Frame details
-        self.frame_width_default = 1080
+        self.frame_width_default = 854
         self.frame_height_default = 480
-        self.frame_width = 1080
+        self.frame_width = 854
         self.frame_height = 480
+        self.pixel_width = 854
+        self.pixel_height = 480
         self.grid_x1 = 0
         self.grid_x2 = 0
         self.grid_y1 = 0
@@ -101,6 +103,7 @@ class vkulintang(object):
         self.gong_8 = np.array([[0, 0], [0, 0], [0, 0]])
 
         self.gong_color_draw = (0, 255, 0)
+        self.text_color = (255, 255, 255)
         self.gong_color_strike = (0, 0, 255)
 
         """ self.coord_crash = np.array([[0, 0], [0, 0], [0, 0]])
@@ -192,31 +195,37 @@ class vkulintang(object):
         # self.bound_width = 135
         self.bound_width = 0.125                        # x is 12.5% of width
 
-        self.gong_1[0:] = [0, self.grid_y1]                                         # (0, upper y)
-        self.gong_1[1:] = [int(self.bound_width*self.frame_width), self.grid_y2]    # (135, lower y)
+        self.gong_1[0,:] = [0, self.grid_y1]                                                            # (0, upper y)
+        self.gong_1[1,:] = [int(self.bound_width*self.pixel_width), self.grid_y2]    #                   (135, lower y)
+        self.gong_1[2,:] = [((self.gong_1[0,0] + self.gong_1[1,0])/2) - 25, self.gong_1[0,1] + 25]      # label coordinates
 
-        self.gong_2[0:] = [int(self.bound_width*self.frame_width), self.grid_y1]    # (135, upper y)
-        self.gong_2[1:] = [int(2*self.bound_width*self.frame_width), self.grid_y2]  # (270, lower y)
+        self.gong_2[0,:] = [int(self.bound_width*self.pixel_width), self.grid_y1]                       # (135, upper y)
+        self.gong_2[1,:] = [int(2*self.bound_width*self.pixel_width), self.grid_y2]                     # (270, lower y)
+        self.gong_2[2,:] = [((self.gong_2[0,0] + self.gong_2[1,0])/2) - 25, self.gong_2[0,1] + 25]
 
-        self.gong_3[0:] = [int(2*self.bound_width*self.frame_width), self.grid_y1]  # (270, upper y)
-        self.gong_3[1:] = [int(3*self.bound_width*self.frame_width), self.grid_y2]  # (405, lower y)
+        self.gong_3[0,:] = [int(2*self.bound_width*self.pixel_width), self.grid_y1]                     # (270, upper y)
+        self.gong_3[1,:] = [int(3*self.bound_width*self.pixel_width), self.grid_y2]                     # (405, lower y)
+        self.gong_3[2,:] = [((self.gong_3[0,0] + self.gong_3[1,0])/2) - 25, self.gong_3[0,1] + 25]
 
-        self.gong_4[0:] = [int(3*self.bound_width*self.frame_width), self.grid_y1]  # (405, upper y)
-        self.gong_4[1:] = [int(4*self.bound_width*self.frame_width), self.grid_y2]  # (540, lower y)
+        self.gong_4[0,:] = [int(3*self.bound_width*self.pixel_width), self.grid_y1]                     # (405, upper y)
+        self.gong_4[1,:] = [int(4*self.bound_width*self.pixel_width), self.grid_y2]                     # (540, lower y)
+        self.gong_4[2,:] = [((self.gong_4[0,0] + self.gong_4[1,0])/2) - 25, self.gong_4[0,1] + 25]
 
-        self.gong_5[0:] = [int(4*self.bound_width*self.frame_width), self.grid_y1]  # (540, upper y)
-        self.gong_5[1:] = [int(5*self.bound_width*self.frame_width), self.grid_y2]  # (675, lower y)
+        self.gong_5[0,:] = [int(4*self.bound_width*self.pixel_width), self.grid_y1]                     # (540, upper y)
+        self.gong_5[1,:] = [int(5*self.bound_width*self.pixel_width), self.grid_y2]                     # (675, lower y)
+        self.gong_5[2,:] = [((self.gong_5[0,0] + self.gong_5[1,0])/2) - 25, self.gong_5[0,1] + 25]
 
-        self.gong_6[0:] = [int(5*self.bound_width*self.frame_width), self.grid_y1]  # (675, upper y)
-        self.gong_6[1:] = [int(6*self.bound_width*self.frame_width), self.grid_y2]  # (810, lower y)
+        self.gong_6[0,:] = [int(5*self.bound_width*self.pixel_width), self.grid_y1]                     # (675, upper y)
+        self.gong_6[1,:] = [int(6*self.bound_width*self.pixel_width), self.grid_y2]                     # (810, lower y)
+        self.gong_6[2,:] = [((self.gong_6[0,0] + self.gong_6[1,0])/2) - 25, self.gong_6[0,1] + 25]
 
-        self.gong_7[0:] = [int(6*self.bound_width*self.frame_width), self.grid_y1]  # (810, upper y)
-        self.gong_7[1:] = [int(7*self.bound_width*self.frame_width), self.grid_y2]  # (945, lower y)
+        self.gong_7[0,:] = [int(6*self.bound_width*self.pixel_width), self.grid_y1]                     # (810, upper y)
+        self.gong_7[1,:] = [int(7*self.bound_width*self.pixel_width), self.grid_y2]                     # (945, lower y)
+        self.gong_7[2,:] = [((self.gong_7[0,0] + self.gong_7[1,0])/2) - 25, self.gong_7[0,1] + 25]
 
-        self.gong_8[0:] = [int(7*self.bound_width*self.frame_width), self.grid_y1]  # (945, upper y)
-        self.gong_8[1:] = [int(8*self.bound_width*self.frame_width), self.grid_y2]  # (1080, lower y)
-        # self.gong_8[1:] = [self.grid_y2, self.grid_y2]                            # (lower y, lower y)
-
+        self.gong_8[0,:] = [int(7*self.bound_width*self.pixel_width), self.grid_y1]                     # (945, upper y)
+        self.gong_8[1,:] = [int(8*self.bound_width*self.pixel_width), self.grid_y2]                     # (1080, lower y)
+        self.gong_8[2,:] = [((self.gong_8[0,0] + self.gong_8[1,0])/2) - 25, self.gong_8[0,1] + 25]
 
     def color_calibration(self):
         """ Computes color calibrations for the left and right markers """
@@ -280,7 +289,10 @@ class vkulintang(object):
                 end = time.time()
             
                 time_elapsed = end - start
-                cv2.imshow("Blob Detection and Frame Calibration", img)
+                title = "Blob Detection"
+                cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+                cv2.resizeWindow(title, int(self.pixel_width), int(self.pixel_height))
+                cv2.imshow(title, img)
 
                 otherFrame = 0
 
@@ -308,6 +320,15 @@ class vkulintang(object):
         cv2.rectangle(img, (self.gong_6[0,0], self.gong_6[0,1]), (self.gong_6[1,0], self.gong_6[1,1]), self.gong_color_draw, 2)
         cv2.rectangle(img, (self.gong_7[0,0], self.gong_7[0,1]), (self.gong_7[1,0], self.gong_7[1,1]), self.gong_color_draw, 2)
         cv2.rectangle(img, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_draw, 2)
+
+        cv2.putText(img, "Gong 1", (self.gong_1[2,0], self.gong_1[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
+        cv2.putText(img, "Gong 2", (self.gong_2[2,0], self.gong_2[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
+        cv2.putText(img, "Gong 3", (self.gong_3[2,0], self.gong_3[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
+        cv2.putText(img, "Gong 4", (self.gong_4[2,0], self.gong_4[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
+        cv2.putText(img, "Gong 5", (self.gong_5[2,0], self.gong_5[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
+        cv2.putText(img, "Gong 6", (self.gong_6[2,0], self.gong_6[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
+        cv2.putText(img, "Gong 7", (self.gong_7[2,0], self.gong_7[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
+        cv2.putText(img, "Gong 8", (self.gong_8[2,0], self.gong_8[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2)
 
 
     def centroid_detection(self, img, item_num, img_counter):

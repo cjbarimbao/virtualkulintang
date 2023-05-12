@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import time
 import datetime
+import pygame
 
 """
 program: image segmentation using rg chromaticity + blob detection + hit detection
@@ -12,6 +13,7 @@ change log:
     05/07/23 @ blob detection: working centroid detection using numpy where and average on pixels with maximum histogram values
     05/08/23 @ blob detection: added thresholding to binarize histogram backprojected image
     05/09/23 @ blob detection: moved thresholding to calibration to reduce processing time
+    05/11/12 @ hit detection: added hit detection and bounding boxes
 
 """
 
@@ -20,7 +22,7 @@ class segmentation(object):
         self.frame_width = 854
         self.frame_height = 480
         self.pixel_width = 427
-        self.pixel_height = 240
+        self.pixel_height = 120
         self.DISPLAY_WIDTH = 1137
         self.DISPLAY_HEIGHT = 640
         self.center = (int(self.pixel_width/2), int(self.pixel_height/2))
@@ -61,14 +63,35 @@ class segmentation(object):
         self.gong_8 = np.array([[0, 0], [0, 0], [0, 0]])
 
         self.gong_color_draw = (0, 255, 0)
-        self.gong_color_strike = (0, 0, 255)
+        self.gong_color_strike_r = (0, 0, 255)
+        self.gong_color_strike_g = (255, 0, 0)
+        self.text_color = (255, 255, 255)
 
+        self.Cr = np.array([0, 0])
+        self.Cg = np.array([0, 0])
+
+        self.hit_state_g = False
+        self.hit_state_r = False
+        self.directory_sound = "./kulintang_sounds/"
 
     def init_calibration(self):
         self.marker_calibration()
         self.init_bounding_boxes_coord()
 
+    def init_drum_sounds(self):
+            # initialize pygame
+            pygame.mixer.pre_init()
+            pygame.init()
+            self.ifDrumSoundsOn = True
 
+            self.gong_sound_1 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_301_P1_N0_S1.wav")
+            self.gong_sound_2 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_302_P1_N0_S1.wav")
+            self.gong_sound_3 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_303_P1_N0_S1.wav")
+            self.gong_sound_4 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_304_P1_N0_S1.wav")
+            self.gong_sound_5 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_305_P1_N0_S1.wav")
+            self.gong_sound_6 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_306_P1_N0_S1.wav")
+            self.gong_sound_7 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_307_P1_N0_S1.wav")
+            self.gong_sound_8 = pygame.mixer.Sound(self.directory_sound + "Mgd_Kulintangan_308_P1_N0_S1.wav")
 
     def marker_calibration(self):
         self.cam = cv2.VideoCapture(0)
@@ -105,7 +128,7 @@ class segmentation(object):
         g_int_append = np.append(self.patch_g_int[0].flatten(), self.patch_g_int[1].flatten())
         r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
         self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
-        _, self.hmatrix = cv2.threshold(self.hmatrix, 30, 255, cv2.THRESH_BINARY)
+        _, self.hmatrix = cv2.threshold(self.hmatrix, 1, 255, cv2.THRESH_BINARY)
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
         self.hmatrix1d = self.hmatrix.flatten()
@@ -185,8 +208,8 @@ class segmentation(object):
         bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
         bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
-        self.masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
-        self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
+        #self.masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
+        #self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
         
         return bp_g, bp_r
 
@@ -207,47 +230,54 @@ class segmentation(object):
             where y is the row and x is the column location in the original frame
         """
         
-        center = [0,0]
+        center = [0,0] # center[0] = X, center[1] = Y
         indices = np.where(frame == 255)
         if indices[0].size > 225:
-            center[0] = indices[0].mean()
-            center[1] = indices[1].mean()
+            center[1] = indices[0].mean()
+            center[0] = indices[1].mean()
 
         center = np.array(center, dtype=np.uint16) 
 
-        return center
+        return center 
 
     def init_bounding_boxes_coord(self):
 
-        self.grid_y1 = int(0.71875*self.DISPLAY_HEIGHT)    # upper y of bound
-        self.grid_y2 = int(self.DISPLAY_HEIGHT)           # lower y of bound
+        self.grid_y1 = int(0.71875*self.pixel_height)    # upper y of bound
+        self.grid_y2 = int(self.pixel_height)           # lower y of bound
         # self.bound_width = 135
         self.bound_width = 0.125                        # x is 12.5% of width
 
-        self.gong_1[0:] = [0, self.grid_y1]                                         # (0, upper y)
-        self.gong_1[1:] = [int(self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]    # (135, lower y)
+        self.gong_1[0,:] = [0, self.grid_y1]                                                            # (0, upper y)
+        self.gong_1[1,:] = [int(self.bound_width*self.pixel_width), self.grid_y2]    #                   (135, lower y)
+        self.gong_1[2,:] = [((self.gong_1[0,0] + self.gong_1[1,0])/2) - 12, self.gong_1[0,1] + 25]      # label coordinates
 
-        self.gong_2[0:] = [int(self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]    # (135, upper y)
-        self.gong_2[1:] = [int(2*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (270, lower y)
+        self.gong_2[0,:] = [int(self.bound_width*self.pixel_width), self.grid_y1]                       # (135, upper y)
+        self.gong_2[1,:] = [int(2*self.bound_width*self.pixel_width), self.grid_y2]                     # (270, lower y)
+        self.gong_2[2,:] = [((self.gong_2[0,0] + self.gong_2[1,0])/2) - 12, self.gong_2[0,1] + 25]
 
-        self.gong_3[0:] = [int(2*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (270, upper y)
-        self.gong_3[1:] = [int(3*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (405, lower y)
+        self.gong_3[0,:] = [int(2*self.bound_width*self.pixel_width), self.grid_y1]                     # (270, upper y)
+        self.gong_3[1,:] = [int(3*self.bound_width*self.pixel_width), self.grid_y2]                     # (405, lower y)
+        self.gong_3[2,:] = [((self.gong_3[0,0] + self.gong_3[1,0])/2) - 12, self.gong_3[0,1] + 25]
 
-        self.gong_4[0:] = [int(3*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (405, upper y)
-        self.gong_4[1:] = [int(4*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (540, lower y)
+        self.gong_4[0,:] = [int(3*self.bound_width*self.pixel_width), self.grid_y1]                     # (405, upper y)
+        self.gong_4[1,:] = [int(4*self.bound_width*self.pixel_width), self.grid_y2]                     # (540, lower y)
+        self.gong_4[2,:] = [((self.gong_4[0,0] + self.gong_4[1,0])/2) - 12, self.gong_4[0,1] + 25]
 
-        self.gong_5[0:] = [int(4*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (540, upper y)
-        self.gong_5[1:] = [int(5*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (675, lower y)
+        self.gong_5[0,:] = [int(4*self.bound_width*self.pixel_width), self.grid_y1]                     # (540, upper y)
+        self.gong_5[1,:] = [int(5*self.bound_width*self.pixel_width), self.grid_y2]                     # (675, lower y)
+        self.gong_5[2,:] = [((self.gong_5[0,0] + self.gong_5[1,0])/2) - 12, self.gong_5[0,1] + 25]
 
-        self.gong_6[0:] = [int(5*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (675, upper y)
-        self.gong_6[1:] = [int(6*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (810, lower y)
+        self.gong_6[0,:] = [int(5*self.bound_width*self.pixel_width), self.grid_y1]                     # (675, upper y)
+        self.gong_6[1,:] = [int(6*self.bound_width*self.pixel_width), self.grid_y2]                     # (810, lower y)
+        self.gong_6[2,:] = [((self.gong_6[0,0] + self.gong_6[1,0])/2) - 12, self.gong_6[0,1] + 25]
 
-        self.gong_7[0:] = [int(6*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (810, upper y)
-        self.gong_7[1:] = [int(7*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (945, lower y)
+        self.gong_7[0,:] = [int(6*self.bound_width*self.pixel_width), self.grid_y1]                     # (810, upper y)
+        self.gong_7[1,:] = [int(7*self.bound_width*self.pixel_width), self.grid_y2]                     # (945, lower y)
+        self.gong_7[2,:] = [((self.gong_7[0,0] + self.gong_7[1,0])/2) - 12, self.gong_7[0,1] + 25]
 
-        self.gong_8[0:] = [int(7*self.bound_width*self.DISPLAY_WIDTH), self.grid_y1]  # (945, upper y)
-        self.gong_8[1:] = [int(8*self.bound_width*self.DISPLAY_WIDTH), self.grid_y2]  # (1080, lower y)
-        # self.gong_8[1:] = [self.grid_y2, self.grid_y2]                            # (lower y, lower y)
+        self.gong_8[0,:] = [int(7*self.bound_width*self.pixel_width), self.grid_y1]                     # (945, upper y)
+        self.gong_8[1,:] = [int(8*self.bound_width*self.pixel_width), self.grid_y2]                     # (1080, lower y)
+        self.gong_8[2,:] = [((self.gong_8[0,0] + self.gong_8[1,0])/2) - 12, self.gong_8[0,1] + 25]
 
     def disp_config(self, frame, Cr, Cg):
         """
@@ -258,7 +288,7 @@ class segmentation(object):
         Cr : centroid of red blob
         Cg : centroid of green blob
         """
-        # draw bounding boxes
+        #----- draw bounding boxes -----
         cv2.rectangle(frame, (self.gong_1[0,0], self.gong_1[0,1]), (self.gong_1[1,0], self.gong_1[1,1]), self.gong_color_draw, 2)
         cv2.rectangle(frame, (self.gong_2[0,0], self.gong_2[0,1]), (self.gong_2[1,0], self.gong_2[1,1]), self.gong_color_draw, 2)
         cv2.rectangle(frame, (self.gong_3[0,0], self.gong_3[0,1]), (self.gong_3[1,0], self.gong_3[1,1]), self.gong_color_draw, 2)
@@ -268,12 +298,200 @@ class segmentation(object):
         cv2.rectangle(frame, (self.gong_7[0,0], self.gong_7[0,1]), (self.gong_7[1,0], self.gong_7[1,1]), self.gong_color_draw, 2)
         cv2.rectangle(frame, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_draw, 2)
 
-        # draw centroid
-        cv2.circle(frame, (Cr[1], Cr[0]), 5, (255, 0, 0), -1)
-        cv2.putText(frame, "centroid", (Cr[1] - 25, Cr[0] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        cv2.circle(frame, (Cg[1], Cg[0]), 5, (255, 0, 0), -1)
-        cv2.putText(frame, "centroid", (Cg[1] - 25, Cg[0] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        #----- draw centroid -----
+        cv2.circle(frame, (Cr[0], Cr[1]), 5, (255, 0, 0), -1)
+        cv2.circle(frame, (Cg[0], Cg[1]), 5, (255, 0, 0), -1)
+
+        #----- add labels -----
+        # green centroid
+        cv2.putText(frame, "centroid", (Cg[0] - 25, Cg[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
+        # red centroid
+        cv2.putText(frame, "centroid", (Cr[0] - 25, Cr[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
+        # gong labels
+        cv2.putText(frame, "Gong 1", (self.gong_1[2,0], self.gong_1[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+        cv2.putText(frame, "Gong 2", (self.gong_2[2,0], self.gong_2[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+        cv2.putText(frame, "Gong 3", (self.gong_3[2,0], self.gong_3[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+        cv2.putText(frame, "Gong 4", (self.gong_4[2,0], self.gong_4[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+        cv2.putText(frame, "Gong 5", (self.gong_5[2,0], self.gong_5[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+        cv2.putText(frame, "Gong 6", (self.gong_6[2,0], self.gong_6[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+        cv2.putText(frame, "Gong 7", (self.gong_7[2,0], self.gong_7[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+        cv2.putText(frame, "Gong 8", (self.gong_8[2,0], self.gong_8[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
+    
+    def hit_detection(self, Cr, Cg):
+        """
+        hit_detection(Cr, Cg)
+
+        Detects if the centroid has hit any of the gong boxes
+
+        Parameters
+        ----------
+        Cr : ndarray
+            An array representation of the centroid of the red blob (y,x) 
+            where y is the row and x is the column location in the original frame
+        Cg : ndarray
+            An array representation of the centroid of the green blob (y,x) 
+            where y is the row and x is the column location in the original frame
+        Returns
+        -------
+        gong_no : list
+            gong number hit detected for green and red centroid. 0 if false.
+        """
+        gong_no = [0,0] # each element corresponds to the gong nos. hit by the green centroid and the red centroid
+
         
+        #----- check if blob is in hit state (i.e. centroid is previously hit, not held within bounding box)
+        if self.hit_state_g == False:
+            #----- check if motion is downwards -----
+            if (self.Cg_prev < Cg[1]):
+                #----- check if green blob is within detection area -----
+                if (Cg[1] > self.grid_y1):
+                    self.hit_state_g = True
+                    #---- Binary search algorithm for checking x coordinates
+                    if Cg[0] <= self.gong_5[0,0]:
+                        if Cg[0] <= self.gong_3[0,0]:
+                            if Cg[0] <= self.gong_2[0,0]:
+                                gong_no[0] = 1
+                            else:
+                                gong_no[0] = 2
+                        else:
+                            if Cg[0] <= self.gong_4[0,0]:
+                                gong_no[0] = 3
+                            else:
+                                gong_no[0] = 4
+                    else:
+                        if Cg[0] <= self.gong_7[0,0]:
+                            if Cg[0] <= self.gong_6[0,0]:
+                                gong_no[0] = 5
+                            else:
+                                gong_no[0] = 6
+                        else:
+                            if Cg[0] <= self.gong_8[0,0]:
+                                gong_no[0] = 7
+                            else:
+                                gong_no[0] = 8
+
+        #----- check if blob is in hit state (i.e. centroid is previously hit, not held within bounding box)
+        if self.hit_state_r == False:
+            #---- check if motion is downwards ----
+            if (self.Cr_prev < Cr[1]):
+                #----- check if red blob is within detection area -----
+                if (Cr[1] > self.grid_y1):
+                    self.hit_state_r = True
+                    #---- Binary search algorithm for checking x coordinates
+                    if Cr[0] <= self.gong_5[0,0]:
+                        if Cr[0] <= self.gong_3[0,0]:
+                            if Cr[0] <= self.gong_2[0,0]:
+                                gong_no[1] = 1
+                            else:
+                                gong_no[1] = 2
+                        else:
+                            if Cr[0] <= self.gong_4[0,0]:
+                                gong_no[1] = 3
+                            else:
+                                gong_no[1] = 4
+                    else:
+                        if Cr[0] <= self.gong_7[0,0]:
+                            if Cr[0] <= self.gong_6[0,0]:
+                                gong_no[1] = 5
+                            else:
+                                gong_no[1] = 6
+                        else:
+                            if Cr[0] <= self.gong_8[0,0]:
+                                gong_no[1] = 7
+                            else:
+                                gong_no[1] = 8
+
+
+        return gong_no
+    
+    def play_kulintang(self, gong_no, frame):
+        """
+        play_kulintang(gong_no, frame)
+
+        Plays the sound and animation of the gong hit
+
+        Parameters
+        ----------
+        gong_no : list
+            gong number hit detected for green and red centroid. 0 if false.
+        """
+
+        #----- display animation and play sound for hits in the green centroid
+        if gong_no[0] > 0:
+            if gong_no[0] < 5:
+                if gong_no[0] < 3:
+                    if gong_no[0] < 2:
+                        cv2.rectangle(frame, (self.gong_1[0,0], self.gong_1[0,1]), (self.gong_1[1,0], self.gong_1[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_1.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_2[0,0], self.gong_2[0,1]), (self.gong_2[1,0], self.gong_2[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_2.play()
+                else:
+                    if gong_no[0] < 4:
+                        cv2.rectangle(frame, (self.gong_3[0,0], self.gong_3[0,1]), (self.gong_3[1,0], self.gong_3[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_3.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_4[0,0], self.gong_4[0,1]), (self.gong_4[1,0], self.gong_4[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_4.play()
+            else:
+                if gong_no[0] < 7:
+                    if gong_no[0] < 6:
+                        cv2.rectangle(frame, (self.gong_5[0,0], self.gong_5[0,1]), (self.gong_5[1,0], self.gong_5[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_5.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_6[0,0], self.gong_6[0,1]), (self.gong_6[1,0], self.gong_6[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_6.play()
+                else:
+                    if gong_no[0] < 8:
+                        cv2.rectangle(frame, (self.gong_7[0,0], self.gong_7[0,1]), (self.gong_7[1,0], self.gong_7[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_7.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_strike_g, 2)
+                        self.gong_sound_8.play()
+
+        #----- display animation and play sound for hits in the red centroid
+        if gong_no[1] > 0:
+            if gong_no[1] < 5:
+                if gong_no[1] < 3:
+                    if gong_no[1] < 2:
+                        cv2.rectangle(frame, (self.gong_1[0,0], self.gong_1[0,1]), (self.gong_1[1,0], self.gong_1[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_1.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_2[0,0], self.gong_2[0,1]), (self.gong_2[1,0], self.gong_2[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_2.play()
+                else:
+                    if gong_no[1] < 4:
+                        cv2.rectangle(frame, (self.gong_3[0,0], self.gong_3[0,1]), (self.gong_3[1,0], self.gong_3[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_3.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_4[0,0], self.gong_4[0,1]), (self.gong_4[1,0], self.gong_4[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_4.play()
+            else:
+                if gong_no[1] < 7:
+                    if gong_no[1] < 6:
+                        cv2.rectangle(frame, (self.gong_5[0,0], self.gong_5[0,1]), (self.gong_5[1,0], self.gong_5[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_5.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_6[0,0], self.gong_6[0,1]), (self.gong_6[1,0], self.gong_6[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_6.play()
+                else:
+                    if gong_no[1] < 8:
+                        cv2.rectangle(frame, (self.gong_7[0,0], self.gong_7[0,1]), (self.gong_7[1,0], self.gong_7[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_7.play()
+                    else:
+                        cv2.rectangle(frame, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_strike_r, 2)
+                        self.gong_sound_8.play()
+
+    def update_hit_state(self):
+        # ----- update hit state -----
+        if self.hit_state_g == True:
+            if self.Cg[1] < self.grid_y1:
+                self.hit_state_g = False
+
+        if self.hit_state_r == True:
+            if self.Cr[1] < self.grid_y1:
+                self.hit_state_r = False
+
     def main_detection(self):
         ''' Main Code '''
         t = []
@@ -284,22 +502,31 @@ class segmentation(object):
             frame = self.downsample(frame)
             frame = cv2.flip(frame, 1)
             bp_g, bp_r = self.image_segmentation(frame)
-            #-------- blob detection ---------
-            centroid_r = self.blob_detection(bp_r)
-            centroid_g = self.blob_detection(bp_g)
+            #-------- blob detection -----------
+            self.Cr_prev = self.Cr[1]
+            self.Cg_prev = self.Cg[1]
+            self.Cr = self.blob_detection(bp_r)
+            self.Cg = self.blob_detection(bp_g)
             end = time.time()
             t.append(end - start)
             #-------- configure display --------  
-            self.disp_config(frame, centroid_r, centroid_g)
-
-            #display = np.concatenate((frame, self.masked_g, self.masked_r), axis = 1)
-
+            self.disp_config(frame, self.Cr, self.Cg)
+            #-------- hit detection ------------
+            self.update_hit_state()
+            gong_no = self.hit_detection(self.Cr, self.Cg)
+            #----- play sound and animation ----
+            self.play_kulintang(gong_no, frame)
+            #-------- display frame ------------
             title = "Blob Detection"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT))
             cv2.imshow(title, frame)
-            #cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/3))
-            #cv2.imshow(title, display)
+            
+            """ display = np.concatenate((bp_g, bp_r), axis = 1)
+            title = "Image Segmentation"
+            cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
+            cv2.imshow(title, display) """
             
             if cv2.waitKey(1) == 27:
                 break
@@ -318,5 +545,6 @@ class segmentation(object):
 
 if __name__ == '__main__':
     start = segmentation()
+    start.init_drum_sounds()
     start.init_calibration()
     start.main_detection()
