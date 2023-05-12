@@ -22,7 +22,7 @@ class segmentation(object):
         self.frame_width = 854
         self.frame_height = 480
         self.pixel_width = 427
-        self.pixel_height = 120
+        self.pixel_height = 240
         self.DISPLAY_WIDTH = 1137
         self.DISPLAY_HEIGHT = 640
         self.center = (int(self.pixel_width/2), int(self.pixel_height/2))
@@ -128,7 +128,7 @@ class segmentation(object):
         g_int_append = np.append(self.patch_g_int[0].flatten(), self.patch_g_int[1].flatten())
         r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
         self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
-        _, self.hmatrix = cv2.threshold(self.hmatrix, 1, 255, cv2.THRESH_BINARY)
+        _, self.hmatrix = cv2.threshold(self.hmatrix, 2, 255, cv2.THRESH_BINARY)
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
         self.hmatrix1d = self.hmatrix.flatten()
