@@ -23,8 +23,8 @@ class segmentation(object):
         self.frame_height = 480
         self.pixel_width = 427
         self.pixel_height = 240
-        self.DISPLAY_WIDTH = 1137
-        self.DISPLAY_HEIGHT = 640
+        self.DISPLAY_WIDTH = 854
+        self.DISPLAY_HEIGHT = 480
         self.center = (int(self.pixel_width/2), int(self.pixel_height/2))
         self.radius = 100
         self.diameter = int(2*self.radius)
@@ -232,7 +232,7 @@ class segmentation(object):
         
         center = [0,0] # center[0] = X, center[1] = Y
         indices = np.where(frame == 255)
-        if indices[0].size > 225:
+        if indices[0].size > 100:
             center[1] = indices[0].mean()
             center[0] = indices[1].mean()
 
