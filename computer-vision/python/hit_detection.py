@@ -3,6 +3,7 @@ import numpy as np
 import time
 import datetime
 import pygame
+from matplotlib import pyplot as plt
 
 """
 program: image segmentation using rg chromaticity + blob detection + hit detection
@@ -13,7 +14,9 @@ change log:
     05/07/23 @ blob detection: working centroid detection using numpy where and average on pixels with maximum histogram values
     05/08/23 @ blob detection: added thresholding to binarize histogram backprojected image
     05/09/23 @ blob detection: moved thresholding to calibration to reduce processing time
-    05/11/12 @ hit detection: added hit detection and bounding boxes
+    05/11/23 @ hit detection: added hit detection and bounding boxes
+    05/14/23 @ image segmentation: added thresholding two further reduce artifacts
+    05/14/23 @ blob detection: dilation to increase blob size
 
 """
 
@@ -26,31 +29,40 @@ class segmentation(object):
         self.DISPLAY_WIDTH = 854
         self.DISPLAY_HEIGHT = 480
         self.center = (int(self.pixel_width/2), int(self.pixel_height/2))
-        self.radius = 100
+        self.radius = 125
         self.diameter = int(2*self.radius)
-        self.label = ("Left", "Right")
 
         self.center_color = (255, 0, 0)
         self.bound_color = (0, 255, 0)
         self.detection_point = np.array([[0, 0], [0, 0]])
 
-        self.patch_size = 30
+        self.patch_size = 50
         self.patch_half = int(self.patch_size/2)
         self.patch_retrieved = False
 
         self.cam = None
         self.total_markers = 2
         
+        # Parameters to adjust
+        self.BINS = 64 # bin size of histogram
+        self.THRESH = 50 # minimum histogram threshold value 
+        self.MIN_CENTROID = 5 # minimum number of pixel dimensions to be considered as centroid
 
-        self.BINS = 32
-        self.patch = [np.zeros((30,30,3)), np.zeros((30,30,3))]
+        # array for storing cropped patch for each marker [0,1] = [red, green]
+        self.patch = [np.zeros((self.patch_size,self.patch_size,3)), np.zeros((self.patch_size,self.patch_size,3))]
         self.patch = np.array(self.patch)
-        self.patch_r = [np.zeros((30,30)), np.zeros((30,30))]
+        # array for storing min and max rgb values for each marker [0,1] = [red, green]
+        self.min_rgb = [np.zeros((3)), np.zeros((3))]
+        self.min_rgb = np.array(self.min_rgb)
+        self.max_rgb = [np.zeros((3)), np.zeros((3))]
+        self.max_rgb = np.array(self.max_rgb)
+        # array for storing normalized chromaticity values for every pixel in the patch for each marker [0,1] = [red, green]
+        self.patch_r = [np.zeros((self.patch_size,self.patch_size)), np.zeros((self.patch_size,self.patch_size))]
         self.patch_r = np.array(self.patch_r)
-        self.patch_g = [np.zeros((30,30)), np.zeros((30,30))]
+        self.patch_g = [np.zeros((self.patch_size,self.patch_size)), np.zeros((self.patch_size,self.patch_size))]
         self.patch_g = np.array(self.patch_g)
-        self.patch_r_int = [np.zeros((30,30)), np.zeros((30,30))]
-        self.patch_g_int = [np.zeros((30,30)), np.zeros((30,30))]
+        self.patch_r_int = [np.zeros((self.patch_size,self.patch_size)), np.zeros((self.patch_size,self.patch_size))]
+        self.patch_g_int = [np.zeros((self.patch_size,self.patch_size)), np.zeros((self.patch_size,self.patch_size))]
 
         # Bounding area coordinates - upper left, lower right coordinates in [x,y]
         self.gong_1 = np.array([[0, 0], [0, 0], [0, 0]])
@@ -67,6 +79,7 @@ class segmentation(object):
         self.gong_color_strike_g = (255, 0, 0)
         self.text_color = (255, 255, 255)
 
+        self.centroid = np.array([[0, 0], [0, 0]], dtype=np.uint16)
         self.Cr = np.array([0, 0])
         self.Cg = np.array([0, 0])
 
@@ -101,7 +114,7 @@ class segmentation(object):
         j = 0
         for i in range(self.total_markers):
             while True:
-                ret_val, frame = self.cam.read()
+                _, frame = self.cam.read()
                 if j == 0:
                     j = j + 1
                 mirrored = cv2.flip(frame, 1)
@@ -109,9 +122,9 @@ class segmentation(object):
                 image = cv2.circle(mirrored, frame_center, self.radius + 1, self.center_color, 2)
 
                 if i == 0:
-                    title = "Calibration: Left"
+                    title = "Calibration: Red"
                 elif i == 1:
-                    title = "Calibration: Right"
+                    title = "Calibration: Green"
                 cv2.namedWindow(title, cv2.WINDOW_NORMAL)
                 cv2.resizeWindow(title, self.frame_width, self.frame_height)
                 cv2.setMouseCallback(title, self.retrieve_patch, [mirrored_ds, i])
@@ -128,10 +141,19 @@ class segmentation(object):
         g_int_append = np.append(self.patch_g_int[0].flatten(), self.patch_g_int[1].flatten())
         r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
         self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
-        _, self.hmatrix = cv2.threshold(self.hmatrix, 2, 255, cv2.THRESH_BINARY)
+        
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
-        self.hmatrix1d = self.hmatrix.flatten()
+        # normalize each hmatrix to max value from 0 to 100
+        self.hmatrix_r = (self.hmatrix_r / np.amax(self.hmatrix_r))*100
+        _, self.hmatrix_r = cv2.threshold(self.hmatrix_r, self.THRESH, 255, cv2.THRESH_BINARY)
+        self.hmatrix_g = (self.hmatrix_g / np.amax(self.hmatrix_g))*100
+        _, self.hmatrix_g = cv2.threshold(self.hmatrix_g, self.THRESH, 255, cv2.THRESH_BINARY)
+
+        plt.imsave('histogram.png',self.hmatrix)
+        plt.imsave('green.png',self.hmatrix_g)
+        plt.imsave('red.png',self.hmatrix_r)
+        #self.hmatrix1d = self.hmatrix.flatten()
         self.hmatrix_g1d = self.hmatrix_g.flatten()
         self.hmatrix_r1d = self.hmatrix_r.flatten()
         # save histogram matrix and r g values of the patch (in integer form)
@@ -157,7 +179,12 @@ class segmentation(object):
             new_height = (int(self.center[1]-self.patch_half), int(self.center[1]+self.patch_half))
             cropped = image[new_height[0]:new_height[1], new_width[0]:new_width[1]]
             self.patch[marker] = np.array(cropped)
-
+            self.min_rgb[marker] = np.amin(cropped, axis=(0,1))
+            self.max_rgb[marker] = np.amax(cropped, axis=(0,1))
+            if marker == 0:
+                cv2.imwrite('red_patch.jpg', cropped)
+            else:
+                cv2.imwrite('green_patch.jpg', cropped)
             # RG chromaticity (normalized) of patch
             np.seterr(invalid='ignore')
             I = self.patch[marker].sum(axis=2)
@@ -189,10 +216,10 @@ class segmentation(object):
 
         Returns
         -------
-        bp_g : ndarray
-            An array representation of the frame's backprojection on the green channel
-        bp_r : ndarray
-            An array representation of the frame's backprojection on the red channel
+        thresh_r : ndarray
+            Thresholded binary image of red pixels
+        thresh_g : ndarray
+            Thresholded binary image of green pixels
         """
 
         np.seterr(invalid='ignore')
@@ -208,10 +235,13 @@ class segmentation(object):
         bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
         bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
-        #self.masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
-        #self.masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
+        masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
+        masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
+
+        thresh_r = cv2.inRange(masked_r, self.min_rgb[0], self.max_rgb[0])
+        thresh_g = cv2.inRange(masked_g, self.min_rgb[1], self.max_rgb[1])
         
-        return bp_g, bp_r
+        return thresh_r, thresh_g
 
     def blob_detection(self, frame):
         """
@@ -231,14 +261,26 @@ class segmentation(object):
         """
         
         center = [0,0] # center[0] = X, center[1] = Y
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
+        #kernel = np.ones((2,2),np.uint8)
+        frame = cv2.dilate(frame,kernel,iterations = 1)
+        #frame = cv2.erode(frame, kernel, iterations = 1)
+        #frame = cv2.morphologyEx(frame, cv2.MORPH_OPEN, kernel)
         indices = np.where(frame == 255)
-        if indices[0].size > 100:
+
+        if indices[0].size > self.MIN_CENTROID:
             center[1] = indices[0].mean()
             center[0] = indices[1].mean()
-
-        center = np.array(center, dtype=np.uint16) 
-
-        return center 
+        elif indices[0].size > 0:
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(10,10))
+            frame = cv2.dilate(frame,kernel,iterations = 1)
+            indices = np.where(frame == 255)
+            center[1] = indices[0].mean()
+            center[0] = indices[1].mean()
+            #print(indices[0].size)
+        
+        center = np.array(center, dtype=np.uint16)
+        return center, frame
 
     def init_bounding_boxes_coord(self):
 
@@ -304,9 +346,9 @@ class segmentation(object):
 
         #----- add labels -----
         # green centroid
-        cv2.putText(frame, "centroid", (Cg[0] - 25, Cg[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
+        cv2.putText(frame, "green", (Cg[0] - 25, Cg[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
         # red centroid
-        cv2.putText(frame, "centroid", (Cr[0] - 25, Cr[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
+        cv2.putText(frame, "red", (Cr[0] - 25, Cr[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
         # gong labels
         cv2.putText(frame, "Gong 1", (self.gong_1[2,0], self.gong_1[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
         cv2.putText(frame, "Gong 2", (self.gong_2[2,0], self.gong_2[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
@@ -501,12 +543,12 @@ class segmentation(object):
             _, frame = self.cam.read()
             frame = self.downsample(frame)
             frame = cv2.flip(frame, 1)
-            bp_g, bp_r = self.image_segmentation(frame)
+            binary_r, binary_g = self.image_segmentation(frame)
             #-------- blob detection -----------
             self.Cr_prev = self.Cr[1]
             self.Cg_prev = self.Cg[1]
-            self.Cr = self.blob_detection(bp_r)
-            self.Cg = self.blob_detection(bp_g)
+            self.Cr, morphed_r = self.blob_detection(binary_r)
+            self.Cg, morphed_g = self.blob_detection(binary_g)
             end = time.time()
             t.append(end - start)
             #-------- configure display --------  
@@ -519,14 +561,21 @@ class segmentation(object):
             #-------- display frame ------------
             title = "Blob Detection"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT))
+            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH*0.8), int(self.DISPLAY_HEIGHT*0.8))
             cv2.imshow(title, frame)
             
-            """ display = np.concatenate((bp_g, bp_r), axis = 1)
+            display = np.concatenate((binary_r, binary_g), axis = 1)
             title = "Image Segmentation"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
-            cv2.imshow(title, display) """
+            cv2.imshow(title, display)
+            
+            morphed = np.concatenate((morphed_r, morphed_g), axis = 1)
+            title = "Morphological Operation"
+            cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
+            cv2.imshow(title, morphed)
+
             
             if cv2.waitKey(1) == 27:
                 break
