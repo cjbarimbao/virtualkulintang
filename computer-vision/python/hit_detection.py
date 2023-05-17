@@ -144,7 +144,7 @@ class segmentation(object):
         
         self.hmatrix_g = np.tril(self.hmatrix)
         self.hmatrix_r = np.triu(self.hmatrix)
-        # normalize each hmatrix to max value from 0 to 100
+        # normalize histogram to max value from 0 to 100
         self.hmatrix_r = (self.hmatrix_r / np.amax(self.hmatrix_r))*100
         _, self.hmatrix_r = cv2.threshold(self.hmatrix_r, self.THRESH, 255, cv2.THRESH_BINARY)
         self.hmatrix_g = (self.hmatrix_g / np.amax(self.hmatrix_g))*100

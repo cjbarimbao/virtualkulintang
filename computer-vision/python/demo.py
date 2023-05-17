@@ -113,8 +113,6 @@ class segmentation(object):
         for i in range(self.total_markers):
             while True:
                 _, frame = self.cam.read()
-                if j == 0:
-                    j = j + 1
                 mirrored = cv2.flip(frame, 1)
                 mirrored_ds = self.downsample(mirrored)
                 image = cv2.circle(mirrored, frame_center, self.radius + 1, self.center_color, 2)
@@ -328,6 +326,11 @@ class segmentation(object):
         Cr : centroid of red blob
         Cg : centroid of green blob
         """
+
+        #----- draw centroid -----
+        cv2.circle(frame, (Cr[0], Cr[1]), 5, (255, 0, 0), -1)
+        cv2.circle(frame, (Cg[0], Cg[1]), 5, (255, 0, 0), -1)
+        
         #----- draw bounding boxes -----
         cv2.rectangle(frame, (self.gong_1[0,0], self.gong_1[0,1]), (self.gong_1[1,0], self.gong_1[1,1]), self.gong_color_draw, 2)
         cv2.rectangle(frame, (self.gong_2[0,0], self.gong_2[0,1]), (self.gong_2[1,0], self.gong_2[1,1]), self.gong_color_draw, 2)
@@ -338,15 +341,11 @@ class segmentation(object):
         cv2.rectangle(frame, (self.gong_7[0,0], self.gong_7[0,1]), (self.gong_7[1,0], self.gong_7[1,1]), self.gong_color_draw, 2)
         cv2.rectangle(frame, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_draw, 2)
 
-        #----- draw centroid -----
-        cv2.circle(frame, (Cr[0], Cr[1]), 5, (255, 0, 0), -1)
-        cv2.circle(frame, (Cg[0], Cg[1]), 5, (255, 0, 0), -1)
-
         #----- add labels -----
         # green centroid
-        cv2.putText(frame, "green", (Cg[0] - 25, Cg[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
+        cv2.putText(frame, "GREEN", (Cg[0] - 25, Cg[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         # red centroid
-        cv2.putText(frame, "red", (Cr[0] - 25, Cr[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (255, 255, 255), 2)
+        cv2.putText(frame, "RED", (Cr[0] - 25, Cr[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         # gong labels
         cv2.putText(frame, "Gong 1", (self.gong_1[2,0], self.gong_1[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
         cv2.putText(frame, "Gong 2", (self.gong_2[2,0], self.gong_2[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
@@ -521,6 +520,12 @@ class segmentation(object):
                     else:
                         cv2.rectangle(frame, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_strike_r, 2)
                         self.gong_sound_8.play()
+        
+        if gong_no[0] > 0:
+            cv2.imwrite('strike_g.png', frame)
+        if gong_no[1] > 0:
+            cv2.imwrite('strike_r.png', frame)
+
 
     def update_hit_state(self):
         # ----- update hit state -----
@@ -535,6 +540,7 @@ class segmentation(object):
     def main_detection(self):
         ''' Main Code '''
         t = []
+        i = 0
         while True:
             
             start = time.time()
@@ -557,7 +563,8 @@ class segmentation(object):
             #----- play sound and animation ----
             self.play_kulintang(gong_no, frame)
             #-------- display frame ------------
-            title = "Blob Detection"
+            i = i + 1
+            title = "Virtual Kulintang"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(title, int(self.DISPLAY_WIDTH*0.8), int(self.DISPLAY_HEIGHT*0.8))
             cv2.imshow(title, frame)
@@ -567,12 +574,15 @@ class segmentation(object):
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
             cv2.imshow(title, display)
-            
+
             morphed = np.concatenate((morphed_r, morphed_g), axis = 1)
             title = "Morphological Operation"
             cv2.namedWindow(title, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
             cv2.imshow(title, morphed)
+            
+            if i == 80:
+                cv2.imwrite('system.png', frame)
 
             
             if cv2.waitKey(1) == 27:
