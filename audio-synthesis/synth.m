@@ -20,7 +20,7 @@ output = strcat(sprintf('%s_%s_est.txt', filename, mode));
 
 
 %read-------------------------
-cd ('C:\FrankECE198\KulBinDat')
+cd ('C:\Users\CJ\Desktop\virtualkulintang\audio-synthesis\binfiles')
 
 if filename(end-3) == '.'
     filename = filename(1:end-4);
@@ -101,9 +101,9 @@ end
 fclose(fp);
 
 %---save synth signal
-cd ('C:\FrankECE198\KulSynth')
+cd ('C:\Users\CJ\Desktop\virtualkulintang\audio-synthesis\synthesized')
 synthfilename = sprintf('%s_synth_%s', filename, mode); % strcat(filename, '_synth_beed');
 sig = 0.9*sig/max(abs(sig));
-wavwrite([sig sig], Fs, 16, synthfilename);
+audiowrite(synthfilename, [sig sig], Fs);
 disp([upper(synthfilename) '.WAV saved.']);
 %eof
