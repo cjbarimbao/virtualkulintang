@@ -12,15 +12,15 @@ function GetBoundaries(filename, dBtol)
 % Frank Agsaway,UP DSP Lab, January 2005
 
 clc
-addpath ('/Users/cjbarimbao/Documents/MATLAB/kulintang-synth');    % path of pickpeak.m
-cd ('/Users/cjbarimbao/Documents/MATLAB/kulintang-synth/binfiles');    % directory of bin and dat files
+addpath ('C:\Users\CJ\Desktop\virtualkulintang\audio-synthesis');    % path of pickpeak.m
+cd ('C:\Users\CJ\Desktop\virtualkulintang\audio-synthesis\binfiles');    % directory of bin and dat files
 
 if (filename(end-3:end) ~= '.bin')
     filename = [filename '.bin'];
 end
 
-if (filename(2:3) ~= '/')
-    filename = [cd '/' filename];
+if (filename(2:3) ~= ':\')
+    filename = [cd '\' filename];
 end
 
 fidr = fopen(filename,'rb');
@@ -132,7 +132,7 @@ end
 
 
 y = length(filename);
-while filename(y)~= '/'
+while filename(y)~= '\'
     y = y - 1;
 end
 figname = filename(y+1:end);
