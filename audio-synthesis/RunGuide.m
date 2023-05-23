@@ -11,6 +11,7 @@ for i = 1:gongs
     fname = sprintf('g%.1d_s%.1d_r',i,samples);
     getboundaries(fname,tol);
     synth(fname, 'beed');
+    %synth(fname); %default settings
 
 %     %--- add wnoise
 %

@@ -61,8 +61,10 @@ for i = 1:DispLen
     end
     [bin,val] = pickpeak(MDlog(:,i),TransLen,ceil((fc)/df)); 
     bin([find(bin==0);find(val==dBtol);find(bin==1)]) = [];
-    if bin(1) == 1
-        bin(1) = [];
+    if ~(isempty(bin))
+        if bin(1) == 1
+            bin(1) = [];
+        end
     end
     parlist = sort(bin);
     

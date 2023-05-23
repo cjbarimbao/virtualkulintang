@@ -102,7 +102,7 @@ fclose(fp);
 
 %---save synth signal
 cd ('C:\Users\CJ\Desktop\virtualkulintang\audio-synthesis\synthesized')
-synthfilename = sprintf('%s_synth_%s', filename, mode); % strcat(filename, '_synth_beed');
+synthfilename = sprintf('%s_synth_%s.wav', filename, mode); % strcat(filename, '_synth_beed');
 sig = 0.9*sig/max(abs(sig));
 audiowrite(synthfilename, [sig sig], Fs);
 disp([upper(synthfilename) '.WAV saved.']);
