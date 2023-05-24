@@ -3,7 +3,7 @@ clear
 clc
 
 gongs = 8;
-samples = 1;
+samples = 5;
 
 tol = 60;           %dB tolerance
 
