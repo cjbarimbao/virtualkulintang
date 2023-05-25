@@ -8,9 +8,14 @@ samples = 5;
 tol = 60;           %dB tolerance
 
 for i = 1:gongs
-    fname = sprintf('g%.1d_s%.1d_r',i,samples);
-    getboundaries(fname,tol);
-    synth(fname, 'beed');
+    for j = 1:samples
+        fname = sprintf('g%.1d_s%.1d_l',i,j);
+        getboundaries(fname,tol);
+        fname = sprintf('g%.1d_s%.1d_r',i,j);
+        getboundaries(fname,tol);
+        fname = sprintf('g%.1d_s%.1d',i,j);
+        synth_stereo(fname, 'beed');
+    end
     %synth(fname); %default settings
 
 %     %--- add wnoise

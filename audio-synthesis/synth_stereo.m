@@ -12,13 +12,14 @@ end
 if filename(end-3) == '.'
     filename = filename(1:end-6);
 end
-datafile = cell(2,1); binfile = cell(2,1); sig = cell(2,1);
+datafile = cell(2,1); binfile = cell(2,1); output = cell(2,1); sig = cell(2,1);
 
 datafile{1} = strcat(filename,'_l.dat');
 binfile{1} = strcat(filename,'_l.bin');
 datafile{2} = strcat(filename,'_r.dat');
 binfile{2} = strcat(filename,'_r.bin');
-output = strcat(sprintf('%s_%s_est_stereo.txt', filename, mode));
+output{1} = strcat(sprintf('%s_%s_est_l.txt', filename, mode));
+output{2} = strcat(sprintf('%s_%s_est_r.txt', filename, mode));
 
 
 %read-------------------------
@@ -31,7 +32,7 @@ for k = 1:2
     %-end read--------------------
 
     %---output
-    fp = fopen(output, 'wt');
+    fp = fopen(output{k}, 'wt');
 
     i = 1;
     cttf = 0;
@@ -108,5 +109,5 @@ synthfilename = sprintf('%s_synth_%s.wav', filename, mode); % strcat(filename, '
 left = 0.9*sig{1}/max(abs(sig{1}));
 right = 0.9*sig{2}/max(abs(sig{2}));
 audiowrite(synthfilename, [left right], Fs);
-disp([upper(synthfilename) 'saved.']);
+disp([upper(synthfilename) ' saved.']);
 %eof
