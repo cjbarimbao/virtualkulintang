@@ -146,9 +146,9 @@ class segmentation(object):
         self.hmatrix_g = (self.hmatrix_g / np.amax(self.hmatrix_g))*100
         _, self.hmatrix_g = cv2.threshold(self.hmatrix_g, self.THRESH, 255, cv2.THRESH_BINARY)
 
-        plt.imsave('histogram.png',self.hmatrix)
-        plt.imsave('green.png',self.hmatrix_g)
-        plt.imsave('red.png',self.hmatrix_r)
+        #plt.imsave('histogram.png',self.hmatrix)
+        #plt.imsave('green.png',self.hmatrix_g)
+        #plt.imsave('red.png',self.hmatrix_r)
         #self.hmatrix1d = self.hmatrix.flatten()
         self.hmatrix_g1d = self.hmatrix_g.flatten()
         self.hmatrix_r1d = self.hmatrix_r.flatten()
@@ -177,10 +177,10 @@ class segmentation(object):
             self.patch[marker] = np.array(cropped)
             self.min_rgb[marker] = np.amin(cropped, axis=(0,1))
             self.max_rgb[marker] = np.amax(cropped, axis=(0,1))
-            if marker == 0:
-                cv2.imwrite('red_patch.jpg', cropped)
-            else:
-                cv2.imwrite('green_patch.jpg', cropped)
+            #if marker == 0:
+            #    cv2.imwrite('red_patch.jpg', cropped)
+            #else:
+            #    cv2.imwrite('green_patch.jpg', cropped)
             # RG chromaticity (normalized) of patch
             np.seterr(invalid='ignore')
             I = self.patch[marker].sum(axis=2)
@@ -521,10 +521,10 @@ class segmentation(object):
                         cv2.rectangle(frame, (self.gong_8[0,0], self.gong_8[0,1]), (self.gong_8[1,0], self.gong_8[1,1]), self.gong_color_strike_r, 2)
                         self.gong_sound_8.play()
         
-        if gong_no[0] > 0:
-            cv2.imwrite('strike_g.png', frame)
-        if gong_no[1] > 0:
-            cv2.imwrite('strike_r.png', frame)
+        #if gong_no[0] > 0:
+        #    cv2.imwrite('strike_g.png', frame)
+        #if gong_no[1] > 0:
+        #    cv2.imwrite('strike_r.png', frame)
 
 
     def update_hit_state(self):
@@ -581,8 +581,8 @@ class segmentation(object):
             cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
             cv2.imshow(title, morphed)
             
-            if i == 80:
-                cv2.imwrite('system.png', frame)
+            #if i == 80:
+            #    cv2.imwrite('system.png', frame)
 
             
             if cv2.waitKey(1) == 27:
