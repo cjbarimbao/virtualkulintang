@@ -45,13 +45,10 @@ data = np.loadtxt('g1_s1_beed_est_l.txt', skiprows=1)
 an = data[0::2, :].astype(float)
 fn = data[1::2, :].astype(float)
 
-# time the execution of the synthesis
-start = time.time()
-
 sig = np.sum([sos_interp(an[i], fn[i], Fs, dt) for i in range(1, len(an))], axis=0)
 
 
-
+start = time.time()
 sd.play(sig, Fs)
 sd.wait()
 # time the execution of the synthesis

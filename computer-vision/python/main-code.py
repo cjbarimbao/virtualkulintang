@@ -569,11 +569,11 @@ class segmentation(object):
             cv2.resizeWindow(title, int(self.DISPLAY_WIDTH*0.8), int(self.DISPLAY_HEIGHT*0.8))
             cv2.imshow(title, frame)
             
-            display = np.concatenate((binary_r, binary_g), axis = 1)
-            title = "Image Segmentation"
-            cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
-            cv2.imshow(title, display)
+            #display = np.concatenate((binary_r, binary_g), axis = 1)
+            #title = "Image Segmentation"
+            #cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+            #cv2.resizeWindow(title, int(self.DISPLAY_WIDTH), int(self.DISPLAY_HEIGHT/2))
+            #cv2.imshow(title, display)
 
             morphed = np.concatenate((morphed_r, morphed_g), axis = 1)
             title = "Morphological Operation"
