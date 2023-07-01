@@ -118,9 +118,9 @@ class segmentation(object):
                 image = cv2.circle(mirrored, frame_center, self.radius + 1, self.center_color, 2)
 
                 if i == 0:
-                    title = "Calibration: Red"
+                    title = "Calibration: Left"
                 elif i == 1:
-                    title = "Calibration: Green"
+                    title = "Calibration: Right"
                 cv2.namedWindow(title, cv2.WINDOW_NORMAL)
                 cv2.resizeWindow(title, self.frame_width, self.frame_height)
                 cv2.setMouseCallback(title, self.retrieve_patch, [mirrored_ds, i])
@@ -277,7 +277,9 @@ class segmentation(object):
             center[1] = indices[0].mean()
             center[0] = indices[1].mean()
             #print(indices[0].size)
-        
+        else:
+            center = [0, self.grid_y1]
+                    
         center = np.array(center, dtype=np.uint16)
         return center, frame
 
@@ -331,8 +333,10 @@ class segmentation(object):
         """
 
         #----- draw centroid -----
-        cv2.circle(frame, (Cr[0], Cr[1]), 5, (255, 0, 0), -1)
-        cv2.circle(frame, (Cg[0], Cg[1]), 5, (255, 0, 0), -1)
+        if Cr[1] != self.grid_y1:
+            cv2.circle(frame, (Cr[0], Cr[1]), 5, (255, 0, 0), -1)
+        if Cg[1] != self.grid_y1:
+            cv2.circle(frame, (Cg[0], Cg[1]), 5, (255, 0, 0), -1)
         
         #----- draw bounding boxes -----
         cv2.rectangle(frame, (self.gong_1[0,0], self.gong_1[0,1]), (self.gong_1[1,0], self.gong_1[1,1]), self.gong_color_draw, 2)
@@ -346,9 +350,9 @@ class segmentation(object):
 
         #----- add labels -----
         # green centroid
-        cv2.putText(frame, "GREEN", (Cg[0] - 25, Cg[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        cv2.putText(frame, "RIGHT", (Cg[0] - 25, Cg[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         # red centroid
-        cv2.putText(frame, "RED", (Cr[0] - 25, Cr[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+        cv2.putText(frame, "LEFT", (Cr[0] - 25, Cr[1] - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         # gong labels
         cv2.putText(frame, "Gong 1", (self.gong_1[2,0], self.gong_1[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
         cv2.putText(frame, "Gong 2", (self.gong_2[2,0], self.gong_2[2,1]),cv2.FONT_HERSHEY_SIMPLEX, 0.25, self.text_color, 1)
