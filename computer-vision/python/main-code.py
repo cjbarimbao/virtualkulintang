@@ -234,9 +234,12 @@ class segmentation(object):
         masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
         masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
 
-        thresh_r = cv2.inRange(masked_r, self.min_rgb[0], self.max_rgb[0])
-        thresh_g = cv2.inRange(masked_g, self.min_rgb[1], self.max_rgb[1])
-        
+        if self.max_rgb[0,1] < self.max_rgb[1,1]:
+            thresh_r = cv2.inRange(masked_r, self.min_rgb[0], self.max_rgb[0])  # left marker is red
+            thresh_g = cv2.inRange(masked_g, self.min_rgb[1], self.max_rgb[1])  # right marker is green
+        else:
+            thresh_r = cv2.inRange(masked_g, self.min_rgb[0], self.max_rgb[0])  # left marker is green
+            thresh_g = cv2.inRange(masked_r, self.min_rgb[1], self.max_rgb[1])  # right marker is red
         return thresh_r, thresh_g
 
     def blob_detection(self, frame):
