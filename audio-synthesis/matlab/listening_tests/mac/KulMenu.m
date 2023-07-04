@@ -299,11 +299,11 @@ for i = 1:len
     nosound = zeros(0.25*Fs,2); 
     
     if ~playorder(i)
-        int1 = playvol1(i)*[orig;nosound];
-        int2 = playvol2(i)*[nosound;synth];
+        int1 = playvol1(i)*[nosound;orig;nosound];
+        int2 = playvol2(i)*[nosound;synth;nosound];
     else
-        int1 = playvol1(i)*[synth;nosound];
-        int2 = playvol2(i)*[nosound;orig];       
+        int1 = playvol1(i)*[nosound;synth;nosound];
+        int2 = playvol2(i)*[nosound;orig;nosound];       
     end
     
     set(g.text5, 'string', 'Ready');

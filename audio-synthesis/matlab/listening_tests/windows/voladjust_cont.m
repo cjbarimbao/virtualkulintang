@@ -100,7 +100,7 @@ function slider1_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 global VolGain;
 VolGain = get(hObject,'Value')
-[snd,Fs] = audioread('C:\Users\CJ\Desktop\198\Agsaway-files\Agsaway\FrankECE198\KulLTs\TestSet1\sample.wav');
+[snd,Fs] = audioread('TestSet\sample.wav');
 sound(VolGain*snd,Fs);
 
 
