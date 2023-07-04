@@ -180,8 +180,8 @@ if isempty(get(handles.edit1, 'string'))
 end
 
 name = get(handles.edit1,'String');
-testdir = strcat(pwd, '/TestSet/');
-filedir = strcat(testdir,'TestResults/');
+testdir = 'TestSet/';
+filedir = 'TestResults/';
 FID = fopen(sprintf('%s%s.txt', filedir, name),'w');
 close(gcf);
 
@@ -291,7 +291,7 @@ playstyle(rev) = playstyle(rev) - n/2;
 set(g.text4, 'string', sprintf('Listening Test %d', ltnum));
 col1 = get(g.frame2, 'BackgroundColor');
 col2 = [0 0.7 0.3];
-testdir = strcat(pwd, '/TestSet/');
+testdir = 'TestSet/';
 for i = 1:len
     [orig,Fs] = audioread(sprintf('%s%s%do.wav', testdir, ins, playstyle(i)));
     [synth] = audioread(sprintf('%s%s%ds.wav', testdir, ins, playstyle(i)));
