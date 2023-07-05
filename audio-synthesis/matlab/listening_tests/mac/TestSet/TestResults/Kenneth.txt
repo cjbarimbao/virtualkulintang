@@ -1,0 +1,30 @@
+Correct guesses per LT block(format: O-S S-O)
+LT1: 5 4
+LT2:3 2
+
+Correct guesses per gong (format: O-S S-O)
+Gong 1: 1 0
+Gong 2: 1 1
+Gong 3: 0 0
+Gong 4: 2 2
+Gong 5: 1 1
+Gong 6: 1 1
+Gong 7: 0 0
+Gong 8: 2 1
+
+Total correct guesses (format: O-S S-O): 8 6
+
+Total number of trials (format: O-S S-O): 16 16
+
+
+Format:
+[n11 per LT n22 per LT]
+[n11 per gong n22 per gong]
+[n11 n22]
+[n1 n2]
+n11 = number of times O-S was chosen when O-S was presented
+n22 = number of times S-O was chosen when S-O was presented
+n1 = number of times that ORIG followed by SYNTH (O-S) was presented
+n2 = number of times that SYNTH followed by ORIG (S-O) was presented
+
+Date created: 2023-07-5 14:19.46

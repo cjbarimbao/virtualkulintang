@@ -181,8 +181,9 @@ end
 
 name = get(handles.edit1,'String');
 testdir = 'TestSet/';
-filedir = 'TestResults/';
+filedir = 'TestSet/TestResults/';
 FID = fopen(sprintf('%s%s.txt', filedir, name),'w');
+disp(FID)
 close(gcf);
 
 ins = lower(instrument(1));
@@ -321,6 +322,7 @@ for i = 1:len
     set(g.text5, 'BackgroundColor', [0.8 0 0]);
     set(g.text5, 'ForegroundColor', [1 1 1]);
     pause(1);
+    clc
     set(g.text5, 'ForegroundColor', [0.925 0.302 0]);
     set(g.text5, 'BackgroundColor', [0.902 0.902 0.902]);
     set(g.frame6, 'BackgroundColor', [0.902 0.902 0.902]);
