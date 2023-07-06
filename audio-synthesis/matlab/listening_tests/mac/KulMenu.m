@@ -240,7 +240,7 @@ uiwait;
 
 n11 = sum(n11s);
 n22 = sum(n22s);
-fprintf(FID, 'Correct guesses per LT block(format: O-S S-O)\nLT1: %d %d\nLT2:%d %d\n\n', n11_lt1, n22_lt1, n11_lt2, n22_lt2);
+fprintf(FID, 'Correct guesses per LT block(format: O-S S-O)\nLT1: %d %d\nLT2: %d %d\n\n', n11_lt1, n22_lt1, n11_lt2, n22_lt2);
 fprintf(FID, 'Correct guesses per gong (format: O-S S-O)\n');
 for i = 1:length(n11s)
     fprintf(FID, 'Gong %d: %d %d\n',i, n11s(i), n22s(i));
