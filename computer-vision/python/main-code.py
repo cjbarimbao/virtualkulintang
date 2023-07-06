@@ -42,7 +42,7 @@ class segmentation(object):
         self.total_markers = 2
         
         # Parameters to adjust
-        self.BINS = 64 # bin size of histogram
+        self.BINS = 32 # bin size of histogram
         self.THRESH = 50 # minimum histogram threshold value 
         self.MIN_CENTROID = 5 # minimum number of pixel dimensions to be considered as centroid
 
@@ -134,35 +134,30 @@ class segmentation(object):
             self.patch_retrieved = False
 
         # Histogram of patch
-        g_int_append = np.append(self.patch_g_int[0].flatten(), self.patch_g_int[1].flatten())
-        r_int_append = np.append(self.patch_r_int[0].flatten(), self.patch_r_int[1].flatten())
-        self.hmatrix, _, _ = np.histogram2d(g_int_append, r_int_append, bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
-        
-        self.hmatrix_g = np.tril(self.hmatrix)
-        self.hmatrix_r = np.triu(self.hmatrix)
+        hmatrix0, _, _ = np.histogram2d(self.patch_g_int[0].flatten(), self.patch_r_int[0].flatten(), bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
+        hmatrix1, _, _ = np.histogram2d(self.patch_g_int[1].flatten(), self.patch_r_int[1].flatten(), bins = self.BINS, range = [[0,self.BINS-1],[0,self.BINS-1]])
+        #np.save('hmatrix0.npy', self.hmatrix_l)
+        #np.save('hmatrix1.npy', self.hmatrix_r)
         # normalize each hmatrix to max value from 0 to 100
-        self.hmatrix_r = (self.hmatrix_r / np.amax(self.hmatrix_r))*100
-        _, self.hmatrix_r = cv2.threshold(self.hmatrix_r, self.THRESH, 255, cv2.THRESH_BINARY)
-        self.hmatrix_g = (self.hmatrix_g / np.amax(self.hmatrix_g))*100
-        _, self.hmatrix_g = cv2.threshold(self.hmatrix_g, self.THRESH, 255, cv2.THRESH_BINARY)
+        self.max_index_0 = np.where(hmatrix0.flatten() == np.amax(hmatrix0.flatten()))
+        self.max_index_1 = np.where(hmatrix1.flatten() == np.amax(hmatrix1.flatten()))
+        print(self.max_index_0)
+        print(self.max_index_1)
+        self.hmatrix0 = (hmatrix0 / np.amax(hmatrix0))*100
+        _, self.hmatrix0 = cv2.threshold(hmatrix0, self.THRESH, 255, cv2.THRESH_BINARY)
+        self.hmatrix1 = (hmatrix1 / np.amax(hmatrix1))*100
+        _, self.hmatrix1 = cv2.threshold(hmatrix1, self.THRESH, 255, cv2.THRESH_BINARY)
 
         #plt.imsave('histogram.png',self.hmatrix)
         #plt.imsave('green.png',self.hmatrix_g)
         #plt.imsave('red.png',self.hmatrix_r)
         #self.hmatrix1d = self.hmatrix.flatten()
-        self.hmatrix_g1d = self.hmatrix_g.flatten()
-        self.hmatrix_r1d = self.hmatrix_r.flatten()
-        # save histogram matrix and r g values of the patch (in integer form)
-        """ with open('calibration.npy', 'wb') as f:
-            np.save(f, self.hmatrix)
-            np.save(f, self.hmatrix_g)
-            np.save(f, self.hmatrix_r)
-            np.save(f, self.patch_g_int[0])
-            np.save(f, self.patch_r_int[0])
-            np.save(f, self.patch_g_int[1])
-            np.save(f, self.patch_r_int[1]) """
+        self.hmatrix_01d = self.hmatrix0.flatten()
+        self.hmatrix_11d = self.hmatrix1.flatten()
+        #np.save('hmatrix_g1d.npy', self.hmatrix_01d)
+        #np.save('hmatrix_r1d.npy', self.hmatrix_11d)
 
-
+        #print(self.max_rgb[0], self.max_rgb[1])
         print("Quitting Calibration...")
 
     def retrieve_patch(self, event, x, y, flags, params):
@@ -228,18 +223,19 @@ class segmentation(object):
         frame_r_int = (self.frame_r*(self.BINS-1)).astype(int)
         frame_g_int = (self.frame_g*(self.BINS-1)).astype(int)
 
-        bp_g = self.hmatrix_g1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
-        bp_r = self.hmatrix_r1d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
+        bp_0 = self.hmatrix_01d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
+        bp_1 = self.hmatrix_11d[frame_g_int.flatten()*self.BINS + frame_r_int.flatten()].reshape(self.frame_r.shape)
 
-        masked_r = cv2.bitwise_and(frame, frame, mask = bp_r.astype(np.uint8))
-        masked_g = cv2.bitwise_and(frame, frame, mask = bp_g.astype(np.uint8))
-
-        if self.max_rgb[0,1] < self.max_rgb[1,1]:
-            thresh_r = cv2.inRange(masked_r, self.min_rgb[0], self.max_rgb[0])  # left marker is red
-            thresh_g = cv2.inRange(masked_g, self.min_rgb[1], self.max_rgb[1])  # right marker is green
+        masked_0 = cv2.bitwise_and(frame, frame, mask = bp_0.astype(np.uint8))
+        masked_1 = cv2.bitwise_and(frame, frame, mask = bp_1.astype(np.uint8))
+        
+        if self.max_index_0 < self.max_index_1:
+            thresh_r = cv2.inRange(masked_0, self.min_rgb[0], self.max_rgb[0])  # left marker is red
+            thresh_g = cv2.inRange(masked_1, self.min_rgb[1], self.max_rgb[1])  # right marker is green
         else:
-            thresh_r = cv2.inRange(masked_g, self.min_rgb[0], self.max_rgb[0])  # left marker is green
-            thresh_g = cv2.inRange(masked_r, self.min_rgb[1], self.max_rgb[1])  # right marker is red
+            thresh_r = cv2.inRange(masked_0, self.min_rgb[0], self.max_rgb[0])  # left marker is green
+            thresh_g = cv2.inRange(masked_1, self.min_rgb[1], self.max_rgb[1])  # right marker is red
+            
         return thresh_r, thresh_g
 
     def blob_detection(self, frame):
